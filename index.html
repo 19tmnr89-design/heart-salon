@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ハートちゃんサロン♡</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <!-- キラキラCanvas -->
+    <canvas id="glitter-canvas"></canvas>
+
+    <!-- ミュートボタン -->
+    <button id="mute-btn" class="mute-btn" title="おと">🔊</button>
+
+    <!-- ハートちゃんエリア -->
+    <div id="heart-chan-area" class="heart-chan-area hidden">
+      <div id="heart-chan-sprite"></div>
+      <div id="speech-bubble" class="speech-bubble">
+        <p id="speech-text">こんにちは！</p>
+      </div>
+    </div>
+
+    <!-- ステップインジケーター -->
+    <div id="step-indicator" class="step-indicator hidden">
+      <span class="dot" data-step="0" title="かみのいろ"></span>
+      <span class="dot" data-step="1" title="スキンケア"></span>
+      <span class="dot" data-step="2" title="チーク"></span>
+      <span class="dot" data-step="3" title="リップ"></span>
+      <span class="dot" data-step="4" title="アイシャドウ"></span>
+      <span class="dot" data-step="5" title="カラコン"></span>
+      <span class="dot" data-step="6" title="くつのかたち"></span>
+      <span class="dot" data-step="7" title="くつのいろ"></span>
+    </div>
+
+    <!-- 鏡（チーク選択時に表示） -->
+    <div id="mirror-overlay" class="mirror-overlay hidden">
+      <div class="mirror-frame">
+        <div class="mirror-glass">
+          <span class="mirror-sparkle s1">✨</span>
+          <span class="mirror-sparkle s2">✨</span>
+          <span class="mirror-sparkle s3">✨</span>
+        </div>
+        <div class="mirror-handle"></div>
+      </div>
+    </div>
+
+    <!-- 各画面コンテナ -->
+    <div id="screen-container">
+
+      <!-- タイトル画面 -->
+      <div id="title-screen" class="screen active">
+        <div class="title-content">
+          <div class="title-heart-chan"></div>
+          <h1 class="game-title">ハートちゃん<br>サロン<span class="heart-icon">♡</span></h1>
+          <p class="title-sub">メイクをしてあげよう！</p>
+          <button id="start-btn" class="big-btn start-btn">
+            ▶ はじめる
+          </button>
+        </div>
+      </div>
+
+      <!-- キャラクター選択画面 -->
+      <div id="select-screen" class="screen">
+        <h2 class="screen-title">だれにする？</h2>
+        <div id="girl-grid" class="girl-grid"></div>
+        <button id="confirm-girl-btn" class="big-btn confirm-btn" disabled>
+          このこにする！✓
+        </button>
+      </div>
+
+      <!-- ゲーム画面 -->
+      <div id="game-screen" class="screen">
+        <div id="character-display">
+          <div id="character-wrap">
+            <!-- キャラクターSVGがここに入る -->
+          </div>
+          <!-- メイクアニメーションオーバーレイ -->
+          <div id="makeup-anim-overlay" class="hidden">
+            <div id="brush-anim"></div>
+          </div>
+        </div>
+        <div id="controls-area">
+          <!-- ステップに応じてコンテンツが変わる -->
+        </div>
+      </div>
+
+      <!-- 完成画面 -->
+      <div id="finish-screen" class="screen">
+        <div class="finish-content">
+          <h2 class="finish-title">かんせい！♡</h2>
+          <div id="finish-character"></div>
+          <p id="finish-comment" class="finish-comment"></p>
+          <button id="play-again-btn" class="big-btn start-btn">
+            もう一度あそぶ ♪
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /screen-container -->
+
+    <!-- ナビゲーション -->
+    <div id="nav-area" class="nav-area hidden">
+      <button id="back-btn" class="nav-btn">◀ もどる</button>
+      <button id="next-btn" class="nav-btn primary">つぎへ ▶</button>
+    </div>
+
+  </div><!-- /app -->
+
+  <script src="comments.js"></script>
+  <script src="characters.js"></script>
+  <script src="hairstyles.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

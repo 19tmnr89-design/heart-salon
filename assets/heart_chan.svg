@@ -1,0 +1,175 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 248" width="200" height="248">
+
+  <!-- ===== 翼（ボディの後ろ） ===== -->
+  <ellipse cx="34" cy="126" rx="24" ry="15" fill="#C8AADD" opacity="0.75" transform="rotate(-25 34 126)"/>
+  <ellipse cx="29" cy="133" rx="16" ry="9"  fill="#DDD0EE" opacity="0.6"  transform="rotate(-25 29 133)"/>
+  <ellipse cx="166" cy="126" rx="24" ry="15" fill="#C8AADD" opacity="0.75" transform="rotate(25 166 126)"/>
+  <ellipse cx="171" cy="133" rx="16" ry="9"  fill="#DDD0EE" opacity="0.6"  transform="rotate(25 171 133)"/>
+
+  <!-- ===== スカラップ縁取り（ピンクふわふわ） ===== -->
+  <!-- トップ中央 -->
+  <circle cx="100" cy="38" r="14" fill="#EBBCD8"/>
+  <!-- 左上アーク -->
+  <circle cx="79"  cy="40" r="13" fill="#EBBCD8"/>
+  <circle cx="61"  cy="50" r="13" fill="#EBBCD8"/>
+  <circle cx="47"  cy="65" r="13" fill="#EBBCD8"/>
+  <circle cx="38"  cy="83" r="12" fill="#EBBCD8"/>
+  <!-- 左サイド -->
+  <circle cx="36"  cy="102" r="12" fill="#EBBCD8"/>
+  <circle cx="40"  cy="121" r="12" fill="#EBBCD8"/>
+  <circle cx="50"  cy="139" r="12" fill="#EBBCD8"/>
+  <circle cx="63"  cy="155" r="12" fill="#EBBCD8"/>
+  <!-- 下部 -->
+  <circle cx="79"  cy="168" r="12" fill="#EBBCD8"/>
+  <circle cx="100" cy="175" r="12" fill="#EBBCD8"/>
+  <!-- 右サイド -->
+  <circle cx="121" cy="168" r="12" fill="#EBBCD8"/>
+  <circle cx="137" cy="155" r="12" fill="#EBBCD8"/>
+  <circle cx="150" cy="139" r="12" fill="#EBBCD8"/>
+  <circle cx="160" cy="121" r="12" fill="#EBBCD8"/>
+  <circle cx="164" cy="102" r="12" fill="#EBBCD8"/>
+  <!-- 右上アーク -->
+  <circle cx="162" cy="83"  r="12" fill="#EBBCD8"/>
+  <circle cx="153" cy="65"  r="13" fill="#EBBCD8"/>
+  <circle cx="139" cy="50"  r="13" fill="#EBBCD8"/>
+  <circle cx="121" cy="40"  r="13" fill="#EBBCD8"/>
+
+  <!-- ===== ハート型ボディ（メイン） ===== -->
+  <path d="
+    M 100,72
+    C 100,65  91,44  68,44
+    C 44,44   36,68  36,86
+    C 36,120  100,170 100,192
+    C 100,170 164,120 164,86
+    C 164,68  156,44  132,44
+    C 109,44  100,65  100,72 Z"
+    fill="#C4A0E2"/>
+
+  <!-- ハート 内側グラデ感（明るい中心） -->
+  <path d="
+    M 100,78
+    C 100,72  93,54  73,54
+    C 54,54   48,74  48,90
+    C 48,118  100,162 100,182
+    C 100,162 152,118 152,90
+    C 152,74  146,54  127,54
+    C 107,54  100,72  100,78 Z"
+    fill="#D2B0EE" opacity="0.5"/>
+
+  <!-- ハートアウトライン -->
+  <path d="
+    M 100,72
+    C 100,65  91,44  68,44
+    C 44,44   36,68  36,86
+    C 36,120  100,170 100,192
+    C 100,170 164,120 164,86
+    C 164,68  156,44  132,44
+    C 109,44  100,65  100,72 Z"
+    fill="none" stroke="#8855BB" stroke-width="2.5"/>
+
+  <!-- ===== 足 ===== -->
+  <rect x="76"  y="190" width="20" height="34" rx="9" fill="#C4A0E2"/>
+  <rect x="104" y="190" width="20" height="34" rx="9" fill="#C4A0E2"/>
+
+  <!-- ===== 靴 ===== -->
+  <ellipse cx="86"  cy="226" rx="22" ry="13" fill="#CC2233"/>
+  <ellipse cx="114" cy="226" rx="22" ry="13" fill="#CC2233"/>
+  <!-- 靴のハイライト -->
+  <ellipse cx="82"  cy="221" rx="10" ry="5" fill="#EE4455" opacity="0.55"/>
+  <ellipse cx="110" cy="221" rx="10" ry="5" fill="#EE4455" opacity="0.55"/>
+
+  <!-- ===== 腕 ===== -->
+  <path d="M 44 105 Q 26 115 22 138 L 38 142 Q 42 126 54 116 Z" fill="#C4A0E2"/>
+  <path d="M 156 105 Q 174 115 178 138 L 162 142 Q 158 126 146 116 Z" fill="#C4A0E2"/>
+
+  <!-- ===== ミトン ===== -->
+  <!-- 左ミトン -->
+  <ellipse cx="23" cy="146" rx="17" ry="15" fill="#CC2233"/>
+  <ellipse cx="18" cy="140" rx="8"  ry="6"  fill="#CC2233"/>
+  <ellipse cx="20" cy="141" rx="5"  ry="4"  fill="#EE4455" opacity="0.5"/>
+  <path d="M 13 145 Q 9 152 13 158" stroke="#AA1122" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <!-- 右ミトン -->
+  <ellipse cx="177" cy="146" rx="17" ry="15" fill="#CC2233"/>
+  <ellipse cx="182" cy="140" rx="8"  ry="6"  fill="#CC2233"/>
+  <ellipse cx="180" cy="141" rx="5"  ry="4"  fill="#EE4455" opacity="0.5"/>
+  <path d="M 187 145 Q 191 152 187 158" stroke="#AA1122" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+
+  <!-- ===== 眉毛 ===== -->
+  <path d="M 72 82 Q 80 77 88 82" stroke="#6633AA" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path d="M 112 82 Q 120 77 128 82" stroke="#6633AA" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+
+  <!-- ===== 目（アニメ風大きな目） ===== -->
+  <!-- 白目 -->
+  <ellipse cx="80"  cy="100" rx="17" ry="18" fill="white"/>
+  <ellipse cx="120" cy="100" rx="17" ry="18" fill="white"/>
+
+  <!-- 虹彩 -->
+  <circle cx="80"  cy="102" r="13" fill="#5544BB"/>
+  <circle cx="120" cy="102" r="13" fill="#5544BB"/>
+
+  <!-- 瞳孔 -->
+  <circle cx="80"  cy="103" r="8" fill="#2A1A88"/>
+  <circle cx="120" cy="103" r="8" fill="#2A1A88"/>
+
+  <!-- メインハイライト（大） -->
+  <circle cx="74"  cy="94"  r="5" fill="white"/>
+  <circle cx="114" cy="94"  r="5" fill="white"/>
+
+  <!-- サブハイライト（小） -->
+  <circle cx="76"  cy="103" r="2.5" fill="white" opacity="0.8"/>
+  <circle cx="116" cy="103" r="2.5" fill="white" opacity="0.8"/>
+
+  <!-- 目のきらきら（✦） -->
+  <path d="M 85,97 L 86,100 L 89,101 L 86,102 L 85,105 L 84,102 L 81,101 L 84,100 Z" fill="white" opacity="0.9"/>
+  <path d="M 125,97 L 126,100 L 129,101 L 126,102 L 125,105 L 124,102 L 121,101 L 124,100 Z" fill="white" opacity="0.9"/>
+
+  <!-- まつ毛（上） -->
+  <path d="M 63 90 Q 72 80 80 90 Q 88 80 97 90" stroke="#2A1A88" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 103 90 Q 112 80 120 90 Q 128 80 137 90" stroke="#2A1A88" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- まつ毛の先端チップ -->
+  <line x1="63"  y1="90" x2="59"  y2="86" stroke="#2A1A88" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="97"  y1="90" x2="101" y2="86" stroke="#2A1A88" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="103" y1="90" x2="99"  y2="86" stroke="#2A1A88" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="137" y1="90" x2="141" y2="86" stroke="#2A1A88" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- まつ毛（下、細く） -->
+  <path d="M 65 110 Q 72 116 80 112 Q 88 116 95 110" stroke="#2A1A88" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.5"/>
+  <path d="M 105 110 Q 112 116 120 112 Q 128 116 135 110" stroke="#2A1A88" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.5"/>
+
+  <!-- ===== ほっぺ ===== -->
+  <ellipse cx="60"  cy="116" rx="16" ry="11" fill="#FFAACC" opacity="0.70"/>
+  <ellipse cx="140" cy="116" rx="16" ry="11" fill="#FFAACC" opacity="0.70"/>
+
+  <!-- ===== 笑顔 ===== -->
+  <path d="M 87 128 Q 100 140 113 128" stroke="#7744AA" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+  <!-- ===== リボン（左） ===== -->
+  <g transform="translate(72,44)">
+    <!-- 左ヒラ -->
+    <path d="M 0,0 Q -14,-12 -18,-4 Q -14,4  0,6 Z" fill="#CC2233"/>
+    <path d="M 0,0 Q -14,-12 -18,-4 Q -14,4  0,6 Z" fill="#EE3344" opacity="0.35"/>
+    <!-- 右ヒラ -->
+    <path d="M 0,0 Q  14,-12  18,-4 Q  14,4  0,6 Z" fill="#CC2233"/>
+    <path d="M 0,0 Q  14,-12  18,-4 Q  14,4  0,6 Z" fill="#EE3344" opacity="0.25"/>
+    <!-- 中心ノット -->
+    <ellipse cx="0" cy="3" rx="6" ry="5" fill="#BB1122"/>
+    <ellipse cx="0" cy="3" rx="3.5" ry="3" fill="#EE3344"/>
+    <!-- テール -->
+    <path d="M -2,7 Q -7,15 -11,13" stroke="#CC2233" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M  2,7 Q  7,15  11,13" stroke="#CC2233" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- ===== リボン（右） ===== -->
+  <g transform="translate(128,44)">
+    <path d="M 0,0 Q -14,-12 -18,-4 Q -14,4  0,6 Z" fill="#CC2233"/>
+    <path d="M 0,0 Q -14,-12 -18,-4 Q -14,4  0,6 Z" fill="#EE3344" opacity="0.35"/>
+    <path d="M 0,0 Q  14,-12  18,-4 Q  14,4  0,6 Z" fill="#CC2233"/>
+    <path d="M 0,0 Q  14,-12  18,-4 Q  14,4  0,6 Z" fill="#EE3344" opacity="0.25"/>
+    <ellipse cx="0" cy="3" rx="6" ry="5" fill="#BB1122"/>
+    <ellipse cx="0" cy="3" rx="3.5" ry="3" fill="#EE3344"/>
+    <path d="M -2,7 Q -7,15 -11,13" stroke="#CC2233" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M  2,7 Q  7,15  11,13" stroke="#CC2233" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  </g>
+
+</svg>

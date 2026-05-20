@@ -1,0 +1,617 @@
+/* ハートちゃんサロン スタイルシート */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --pink:      #FF88BB;
+  --pink-lt:   #FFD6EC;
+  --lavender:  #C9A8E0;
+  --lav-lt:    #EDE0F8;
+  --white:     #FFFFFF;
+  --cream:     #FFF8F5;
+  --text:      #5A2D6E;
+  --shadow:    rgba(180, 100, 180, 0.25);
+  --radius:    18px;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: linear-gradient(160deg, #FFE8F4 0%, #EDE0F8 50%, #D6EEFF 100%);
+  font-family: 'Noto Sans JP', 'Hiragino Maru Gothic Pro', 'UD デジタル 教科書体 NK-R', sans-serif;
+  color: var(--text);
+  user-select: none;
+}
+
+#app {
+  position: relative;
+  width: 100%; height: 100vh;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ===== Canvas ===== */
+#glitter-canvas {
+  position: fixed;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 480px; height: 100vh;
+  pointer-events: none;
+  z-index: 999;
+}
+
+/* ===== ミュートボタン ===== */
+.mute-btn {
+  position: fixed;
+  top: 12px; right: 14px;
+  z-index: 100;
+  background: white;
+  border: none;
+  border-radius: 50%;
+  width: 48px; height: 48px;
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: 0 3px 10px var(--shadow);
+  transition: transform .15s;
+}
+.mute-btn:active { transform: scale(.88); }
+
+/* ===== ハートちゃんエリア ===== */
+.heart-chan-area {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 8px 14px 0;
+  min-height: 110px;
+  z-index: 10;
+}
+
+#heart-chan-sprite {
+  flex-shrink: 0;
+  width: 88px; height: 110px;
+  background: url('assets/heart_chan.svg') center/contain no-repeat;
+  animation: hcIdle 2.4s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+@keyframes hcIdle {
+  0%,100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-5px) rotate(2deg); }
+}
+.bounce {
+  animation: hcBounce .4s ease-out !important;
+}
+@keyframes hcBounce {
+  0%   { transform: translateY(0); }
+  40%  { transform: translateY(-18px) scale(1.08); }
+  70%  { transform: translateY(-4px); }
+  100% { transform: translateY(0); }
+}
+
+/* 吹き出し */
+.speech-bubble {
+  position: relative;
+  background: white;
+  border: 3px solid var(--pink);
+  border-radius: 16px;
+  padding: 10px 14px;
+  max-width: 240px;
+  box-shadow: 0 3px 10px var(--shadow);
+  animation: fadeInPop .35s ease-out;
+}
+.speech-bubble::before {
+  content: '';
+  position: absolute;
+  left: -16px; bottom: 18px;
+  border: 8px solid transparent;
+  border-right-color: var(--pink);
+}
+.speech-bubble::after {
+  content: '';
+  position: absolute;
+  left: -10px; bottom: 20px;
+  border: 6px solid transparent;
+  border-right-color: white;
+}
+#speech-text {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+/* ===== ステップインジケーター ===== */
+.step-indicator {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+.dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #DDD;
+  transition: background .3s, transform .3s;
+}
+.dot.active {
+  background: var(--pink);
+  transform: scale(1.3);
+}
+.dot.done {
+  background: var(--lavender);
+}
+
+/* ===== 画面コンテナ ===== */
+#screen-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+.screen {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
+  padding-bottom: 80px;
+}
+.screen.active { display: flex; }
+
+/* ===== タイトル画面 ===== */
+.title-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  padding: 20px;
+}
+.title-heart-chan {
+  width: 140px; height: 176px;
+  background: url('assets/heart_chan.svg') center/contain no-repeat;
+  animation: hcIdle 2.4s ease-in-out infinite;
+}
+.game-title {
+  font-size: 36px;
+  font-weight: 900;
+  text-align: center;
+  line-height: 1.2;
+  color: var(--text);
+  text-shadow: 2px 2px 0 white, 3px 3px 0 var(--pink);
+}
+.heart-icon { color: var(--pink); }
+.title-sub {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--lavender);
+}
+
+/* ===== キャラクター選択 ===== */
+.screen-title {
+  font-size: 22px;
+  font-weight: 900;
+  text-align: center;
+  margin: 12px 0 8px;
+  color: var(--text);
+  text-shadow: 1px 1px 0 white;
+}
+.girl-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 8px 12px;
+  width: 100%;
+}
+.girl-card {
+  background: white;
+  border: 3px solid transparent;
+  border-radius: 14px;
+  padding: 6px 4px 4px;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color .2s, transform .15s, box-shadow .2s;
+  box-shadow: 0 2px 8px var(--shadow);
+}
+.girl-card:active  { transform: scale(.92); }
+.girl-card.selected {
+  border-color: var(--pink);
+  box-shadow: 0 0 0 3px var(--pink-lt), 0 3px 10px var(--shadow);
+  transform: scale(1.06);
+}
+.girl-card svg { width: 100%; height: auto; display: block; }
+.girl-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 3px;
+}
+
+/* ===== ゲーム画面 ===== */
+#game-screen {
+  flex-direction: column;
+  gap: 0;
+}
+#character-display {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 240px;
+  flex-shrink: 0;
+}
+#character-wrap {
+  position: relative;
+  height: 220px;
+}
+#character-wrap svg {
+  height: 220px;
+  width: auto;
+  filter: drop-shadow(0 6px 14px rgba(150, 80, 180, .25));
+  transition: filter .3s;
+}
+
+/* メイクアニメーションオーバーレイ */
+#makeup-anim-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#brush-anim {
+  font-size: 40px;
+  opacity: 0;
+}
+
+/* チークブラシアニメ */
+@keyframes cheekBrush {
+  0%   { opacity: 1; transform: translate(-30px, 10px) rotate(-20deg) scale(.8); }
+  40%  { opacity: 1; transform: translate(0px, 0px) rotate(0deg) scale(1.1); }
+  70%  { opacity: 1; transform: translate(30px, 10px) rotate(20deg) scale(.8); }
+  100% { opacity: 0; transform: translate(40px, 20px) rotate(30deg) scale(.6); }
+}
+/* リップアニメ */
+@keyframes lipSlide {
+  0%   { opacity: 1; transform: translateX(-60px); }
+  80%  { opacity: 1; transform: translateX(60px); }
+  100% { opacity: 0; transform: translateX(80px); }
+}
+/* アイシャドウアニメ */
+@keyframes eyeFloat {
+  0%   { opacity: 0; transform: translateY(-20px) scale(.8); }
+  30%  { opacity: 1; transform: translateY(0) scale(1); }
+  70%  { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(10px); }
+}
+
+/* コントロールエリア */
+#controls-area {
+  flex: 1;
+  width: 100%;
+  padding: 0 12px 8px;
+  overflow-y: auto;
+}
+
+/* ステップタイトル */
+.step-title {
+  font-size: 18px;
+  font-weight: 900;
+  text-align: center;
+  margin: 6px 0 8px;
+  color: var(--text);
+}
+
+/* 髪型グリッド */
+.hairstyle-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.hair-card {
+  background: white;
+  border: 3px solid transparent;
+  border-radius: 12px;
+  padding: 6px;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color .2s, transform .15s;
+  box-shadow: 0 2px 6px var(--shadow);
+}
+.hair-card:active { transform: scale(.9); }
+.hair-card.selected { border-color: var(--pink); }
+.hair-card svg { width: 100%; height: 52px; }
+.hair-card-name {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 2px;
+  line-height: 1.2;
+}
+
+/* スキンケアグリッド（2x2） */
+.skincare-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 10px 18px;
+}
+.skincare-card {
+  background: white;
+  border: 3px solid transparent;
+  border-radius: 16px;
+  padding: 12px 6px;
+  cursor: pointer;
+  text-align: center;
+  transition: transform .15s, border-color .2s, box-shadow .2s;
+  box-shadow: 0 3px 8px var(--shadow);
+}
+.skincare-card:active { transform: scale(.9); }
+.skincare-card.used {
+  border-color: var(--pink);
+  background: linear-gradient(180deg, #FFF8FC 0%, #FFEEF8 100%);
+  box-shadow: 0 0 0 3px rgba(255, 136, 187, 0.25), 0 3px 8px var(--shadow);
+}
+.skincare-emoji {
+  font-size: 40px;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+.skincare-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+/* 靴の形グリッド */
+.shoe-shape-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 10px 14px;
+}
+.shoe-shape-card {
+  background: white;
+  border: 3px solid transparent;
+  border-radius: 16px;
+  padding: 10px 4px;
+  cursor: pointer;
+  text-align: center;
+  transition: transform .15s, border-color .2s, box-shadow .2s;
+  box-shadow: 0 3px 8px var(--shadow);
+}
+.shoe-shape-card:active { transform: scale(.9); }
+.shoe-shape-card.selected {
+  border-color: var(--pink);
+  background: linear-gradient(180deg, #FFF8FC 0%, #FFEEF8 100%);
+  box-shadow: 0 0 0 3px rgba(255,136,187,.3), 0 3px 8px var(--shadow);
+}
+.shoe-shape-emoji {
+  font-size: 36px;
+  line-height: 1.1;
+  margin-bottom: 2px;
+}
+.shoe-shape-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* 鏡オーバーレイ（チーク選択時にふわっと） */
+.mirror-overlay {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 300;
+  pointer-events: none;
+}
+.mirror-overlay.active {
+  animation: mirrorPop 1.4s ease-out forwards;
+}
+.mirror-frame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.mirror-glass {
+  width: 150px;
+  height: 180px;
+  border-radius: 50% 50% 48% 48% / 60% 60% 40% 40%;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255,255,255,.85), rgba(255,255,255,.35) 35%, rgba(220,200,240,.5) 70%),
+    linear-gradient(135deg, #FFE8F4 0%, #EDE0F8 60%, #D6EEFF 100%);
+  border: 8px solid #E8B4D8;
+  box-shadow:
+    0 0 0 4px #FFD8EC,
+    0 0 30px rgba(255, 180, 220, .8),
+    inset 0 0 20px rgba(255,255,255,.6);
+  position: relative;
+  overflow: hidden;
+}
+.mirror-sparkle {
+  position: absolute;
+  font-size: 22px;
+  filter: drop-shadow(0 0 6px white);
+  animation: sparkleSpin 1.4s ease-in-out infinite;
+}
+.mirror-sparkle.s1 { top: 12px; left: 18px; animation-delay: 0s; }
+.mirror-sparkle.s2 { top: 30px; right: 14px; animation-delay: .25s; }
+.mirror-sparkle.s3 { bottom: 22px; left: 28px; animation-delay: .5s; }
+.mirror-handle {
+  width: 22px;
+  height: 60px;
+  background: linear-gradient(180deg, #E8B4D8 0%, #C088B8 100%);
+  border-radius: 0 0 12px 12px;
+  margin-top: -2px;
+  box-shadow: 0 4px 8px rgba(0,0,0,.15);
+}
+@keyframes mirrorPop {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(.3) rotate(-12deg); }
+  25%  { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(4deg); }
+  45%  { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  75%  { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(.85) rotate(8deg); }
+}
+@keyframes sparkleSpin {
+  0%, 100% { opacity: .4; transform: scale(.6) rotate(0deg); }
+  50%      { opacity: 1;  transform: scale(1.2) rotate(180deg); }
+}
+
+/* カラーパレット */
+.palette-title {
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  margin: 8px 0 6px;
+  color: var(--text);
+}
+.color-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  padding: 4px 0;
+}
+.color-swatch {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid transparent;
+  box-shadow: 0 2px 6px rgba(0,0,0,.18);
+  transition: transform .15s, border-color .15s;
+}
+.color-swatch:active { transform: scale(.85); }
+.color-swatch.selected {
+  border-color: var(--text);
+  transform: scale(1.2);
+  box-shadow: 0 0 0 3px white, 0 0 0 5px var(--text);
+}
+
+/* ===== ボタン共通 ===== */
+.big-btn {
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: 900;
+  padding: 16px 32px;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+  box-shadow: 0 5px 0 rgba(0,0,0,.15), 0 8px 20px var(--shadow);
+  letter-spacing: .04em;
+}
+.big-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.15); }
+.big-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.start-btn {
+  background: linear-gradient(135deg, #FF88BB, #CC55EE);
+  color: white;
+}
+.confirm-btn {
+  background: linear-gradient(135deg, #FF88BB, #FFBB44);
+  color: white;
+  margin: 10px 0;
+}
+
+/* ===== ナビゲーション ===== */
+.nav-area {
+  position: fixed;
+  bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 16px 14px;
+  background: linear-gradient(transparent, rgba(255,240,255,.95) 40%);
+  z-index: 50;
+}
+.nav-btn {
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 900;
+  padding: 13px 22px;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: transform .15s;
+  box-shadow: 0 4px 0 rgba(0,0,0,.12);
+  background: white;
+  color: var(--text);
+}
+.nav-btn.primary {
+  background: linear-gradient(135deg, var(--pink), var(--lavender));
+  color: white;
+}
+.nav-btn:active { transform: translateY(2px); }
+
+/* ===== 完成画面 ===== */
+.finish-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  height: 100%;
+}
+.finish-title {
+  font-size: 34px;
+  font-weight: 900;
+  color: var(--pink);
+  text-shadow: 2px 2px 0 white;
+  animation: titlePop .5s ease-out;
+}
+@keyframes titlePop {
+  0%   { transform: scale(0) rotate(-10deg); opacity: 0; }
+  60%  { transform: scale(1.15) rotate(3deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+#finish-character { animation: charReveal .6s .2s ease-out both; }
+@keyframes charReveal {
+  0%   { transform: scale(0.5) translateY(40px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+.finish-comment {
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text);
+  background: white;
+  border-radius: 14px;
+  padding: 10px 18px;
+  box-shadow: 0 3px 10px var(--shadow);
+}
+
+/* ===== ユーティリティ ===== */
+.hidden { display: none !important; }
+
+@keyframes fadeInPop {
+  0%   { opacity: 0; transform: scale(.85) translateY(6px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* フェードイン */
+.fade-in {
+  animation: fadeIn .3s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; } to { opacity: 1; }
+}
+
+/* レスポンシブ (PC) */
+@media (min-width: 480px) {
+  #app { box-shadow: 0 0 40px rgba(150,80,180,.2); border-radius: 0; }
+}
