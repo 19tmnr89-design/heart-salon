@@ -28,18 +28,28 @@ function newId() {
 
 /* ================= 種目マスタ ================= */
 
-const BODY_PARTS = ["胸", "背中", "脚", "肩", "腕", "腹", "有酸素", "その他"];
+const BODY_PARTS = ["胸", "背中", "脚", "肩", "腕", "お尻", "腹筋", "有酸素運動", "その他"];
 
+// 筋トレmemoで使用していた種目を先頭に、一般的な種目を後ろに配置
 const PRESET_EXERCISES = {
-  "胸": ["ベンチプレス", "ダンベルプレス", "インクラインベンチプレス", "インクラインダンベルプレス", "ダンベルフライ", "チェストプレス", "ケーブルクロスオーバー", "ディップス", "腕立て伏せ"],
-  "背中": ["デッドリフト", "ラットプルダウン", "懸垂", "ベントオーバーロウ", "シーテッドロウ", "ダンベルロウ", "Tバーロウ", "バックエクステンション"],
-  "脚": ["スクワット", "レッグプレス", "レッグエクステンション", "レッグカール", "ブルガリアンスクワット", "ランジ", "カーフレイズ", "ヒップスラスト"],
-  "肩": ["ショルダープレス", "ダンベルショルダープレス", "サイドレイズ", "フロントレイズ", "リアレイズ", "アップライトロウ", "フェイスプル"],
-  "腕": ["バーベルカール", "ダンベルカール", "ハンマーカール", "トライセプスエクステンション", "プレスダウン", "ナローベンチプレス", "リストカール"],
-  "腹": ["クランチ", "レッグレイズ", "プランク", "アブローラー", "シットアップ", "ロシアンツイスト"],
-  "有酸素": ["ランニング", "ウォーキング", "バイク", "エアロバイク", "トレッドミル"],
+  "胸": ["ペクトラルフライ", "フライ", "チェストプレス", "スミスマシン・インクラインベンチプレス", "ケーブルクロス", "ディップス", "ダンベルフライ", "ダンベルプレス", "インクラインダンベルプレス", "ベンチプレス", "インクラインベンチプレス", "腕立て伏せ"],
+  "背中": ["アシストチンニング", "ダンベルデッドリフト", "シーテッドロー", "ラットプルダウン", "プーリーロー", "チンニング（懸垂）", "デッドリフト", "ベントオーバーロウ", "バックエクステンション"],
+  "脚": ["カーフレイズ", "アブダクション", "アダクション", "レッグプレス", "レッグエクステンション", "レッグカール", "スクワット", "ブルガリアンスクワット", "ランジ"],
+  "肩": ["リアデルトイド", "ショルダープレス", "サイドレイズ", "フロントレイズ", "リアレイズ", "アップライトロウ", "フェイスプル"],
+  "腕": ["キックバック", "ダンベルフレンチプレス", "インクラインアームカール", "アシストディップス", "フレンチプレス", "ダンベルカール", "アームエクステンション", "アームカール", "ハンマーカール", "プレスダウン"],
+  "お尻": ["ヒップスラスト", "グルートブリッジ"],
+  "腹筋": ["ベントニーシートアップ", "ロータリートルソー", "プランク", "クランチ", "レッグレイズ", "アブローラー"],
+  "有酸素運動": ["ランニング", "ウォーキング", "バイク", "トレッドミル", "エアロバイク"],
   "その他": []
 };
+
+// 旧バージョンで保存した部位名を新しい名称に揃える
+const PART_RENAME = { "腹": "腹筋", "有酸素": "有酸素運動" };
+let partMigrated = false;
+for (const r of records) {
+  if (PART_RENAME[r.bodyPart]) { r.bodyPart = PART_RENAME[r.bodyPart]; partMigrated = true; }
+}
+if (partMigrated) saveRecords();
 
 // 種目 → 部位の逆引き（インポート時の部位補完に使用）
 const EXERCISE_TO_PART = {};
@@ -142,23 +152,18 @@ function initBodyPartSelect() {
 
 function refreshExerciseList() {
   const part = $("#f-bodypart").value;
-  const used = [...new Set(records.filter(r => !part || r.bodyPart === part).map(r => r.exercise))];
+  // 選択中の部位の種目一覧：自分が記録したことのある種目を先頭に、プリセットを続ける
+  const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
+  const used = [...new Set(sorted.filter(r => r.bodyPart === part).map(r => r.exercise))];
   const preset = PRESET_EXERCISES[part] || [];
   const all = [...new Set([...used, ...preset])];
+
   $("#exercise-list").innerHTML = all.map(e => `<option value="${esc(e)}">`).join("");
 
-  // 最近使った種目チップ（全部位から、新しい順に8件）
-  const recent = [];
-  const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
-  for (const r of sorted) {
-    if (!recent.includes(r.exercise)) recent.push(r.exercise);
-    if (recent.length >= 8) break;
-  }
-  $("#recent-exercises").innerHTML = recent
-    .map(e => `<button type="button" class="chip" data-ex="${esc(e)}">${esc(e)}</button>`).join("");
+  $("#recent-exercises").innerHTML = all
+    .map(e => `<button type="button" class="chip${used.includes(e) ? " used" : ""}" data-ex="${esc(e)}">${esc(e)}</button>`).join("");
   $$("#recent-exercises .chip").forEach(c => c.addEventListener("click", () => {
     $("#f-exercise").value = c.dataset.ex;
-    $("#f-bodypart").value = guessBodyPart(c.dataset.ex);
     prefillLastSets(c.dataset.ex);
   }));
 }
