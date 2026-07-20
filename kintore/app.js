@@ -20,7 +20,20 @@ function loadRecords() {
 
 function saveRecords() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  // 同期モジュールへローカル変更を通知（読み込んだだけの再描画では発火させない）
+  window.dispatchEvent(new CustomEvent("kintore:changed"));
 }
+
+// 同期モジュールがリモートのデータを取り込んだときに呼ばれ、画面を最新化する
+function reloadFromStorage() {
+  records = loadRecords();
+  refreshExerciseList();
+  renderTodaySummary();
+  const active = document.querySelector(".tab-btn.active")?.dataset.tab;
+  if (active === "history") renderHistory();
+  if (active === "analysis") renderAnalysis();
+}
+window.addEventListener("kintore:remote", reloadFromStorage);
 
 function newId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
