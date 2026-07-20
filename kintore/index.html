@@ -109,6 +109,21 @@
       <input type="file" id="import-file" accept=".csv,.json,text/csv,application/json">
       <p id="import-msg" class="save-msg" hidden></p>
     </div>
+    <div class="card">
+      <h2>🔄 端末間の同期</h2>
+      <p class="note">同じ「同期コード（合言葉）」を入れた端末どうしで、記録が自動で同期されます。スマホとPCの両方に同じコードを入れてください。</p>
+      <div id="sync-status" class="sync-status">未接続</div>
+      <input type="text" id="sync-code" placeholder="同期コード（例: myGym2026）" autocomplete="off">
+      <button type="button" id="sync-connect" class="btn-main">同期を開始</button>
+      <button type="button" id="sync-disconnect" class="btn-sub wide" hidden>同期を解除</button>
+
+      <div id="sync-config-box" hidden>
+        <p class="note" style="margin-top:14px;">初回のみ、Firebaseの設定を貼り付けてください（Firebaseコンソールの firebaseConfig の中身）。</p>
+        <textarea id="sync-config-input" rows="7" placeholder='{ "apiKey": "...", "authDomain": "...", "projectId": "...", "appId": "..." }'></textarea>
+        <button type="button" id="sync-config-save" class="btn-sub wide">設定を保存</button>
+      </div>
+    </div>
+
     <div class="card danger-zone">
       <h2>🗑 全データ削除</h2>
       <p class="note">この端末（ブラウザ）に保存された記録をすべて削除します。元に戻せません。</p>
@@ -126,5 +141,6 @@
 </nav>
 
 <script src="app.js"></script>
+<script type="module" src="sync.js"></script>
 </body>
 </html>
