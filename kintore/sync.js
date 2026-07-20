@@ -102,9 +102,9 @@ async function pushNow() {
   if (!docRef) return;
   try {
     await setDoc(docRef, { records: loadLocal(), updatedAt: Date.now(), updatedBy: deviceId });
-    setStatus("同期中 ✓ 最終更新 " + new Date().toLocaleTimeString("ja-JP"), "ok");
+    setStatus("✅ 同期オン｜保存しました " + new Date().toLocaleTimeString("ja-JP"), "ok");
   } catch (e) {
-    setStatus("同期エラー: " + (e.code || e.message), "err");
+    setStatus("⚠️ 同期エラー: " + (e.code || e.message), "err");
   }
 }
 
@@ -137,11 +137,11 @@ async function connect(code) {
       if (data.updatedBy === deviceId) return; // 自分の書き込みは無視（ループ防止）
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data.records || []));
       window.dispatchEvent(new CustomEvent("kintore:remote"));
-      setStatus("同期中 ✓ 他端末から更新 " + new Date().toLocaleTimeString("ja-JP"), "ok");
-    }, err => setStatus("同期エラー: " + (err.code || err.message), "err"));
+      setStatus("✅ 同期オン｜他の端末から更新を受信 " + new Date().toLocaleTimeString("ja-JP"), "ok");
+    }, err => setStatus("⚠️ 同期エラー: " + (err.code || err.message), "err"));
 
     localStorage.setItem(CODE_KEY, code);
-    setStatus("同期中 ✓（コード: " + code + "）", "ok");
+    setStatus("✅ 同期オン（コード: " + code + "）｜この端末は同期されています", "ok");
     updateButtons(true);
   } catch (e) {
     setStatus("接続失敗: " + (e.code || e.message), "err");
