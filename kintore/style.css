@@ -213,6 +213,31 @@ table.pr th.num { text-align: right; }
 #import-file { padding: 10px 0; font-size: 14px; width: 100%; color: var(--sub); }
 .danger-zone { border-color: rgba(255,107,107,0.4); }
 
+.sync-status {
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--panel2);
+  color: var(--sub);
+  margin-bottom: 10px;
+  word-break: break-word;
+}
+.sync-status.ok { color: var(--green); }
+.sync-status.err { color: var(--accent); }
+#sync-code { margin-bottom: 8px; }
+#sync-config-input {
+  width: 100%;
+  padding: 10px;
+  font-size: 12px;
+  font-family: ui-monospace, Menlo, monospace;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  resize: vertical;
+}
+
 /* ---- tab bar ---- */
 .tab-bar {
   position: fixed;
