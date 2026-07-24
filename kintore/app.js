@@ -177,22 +177,55 @@ function refreshExerciseList() {
     .map(e => `<button type="button" class="chip${used.includes(e) ? " used" : ""}" data-ex="${esc(e)}">${esc(e)}</button>`).join("");
   $$("#recent-exercises .chip").forEach(c => c.addEventListener("click", () => {
     $("#f-exercise").value = c.dataset.ex;
+    if (EXERCISE_TO_PART[c.dataset.ex]) $("#f-bodypart").value = EXERCISE_TO_PART[c.dataset.ex];
     prefillLastSets(c.dataset.ex);
   }));
 }
 
-// その種目の前回セットをプレースホルダとして再現
+// 同じ日・同じ種目の既存レコード（あれば追記対象）
+function findTodayRecord(exercise) {
+  const date = $("#f-date").value;
+  return records.find(r => r.date === date && r.exercise === exercise) || null;
+}
+
+// 「本日すでに記録済み → 追記します」のヒント表示
+function updateContinueHint() {
+  const ex = $("#f-exercise").value.trim();
+  const hint = $("#continue-hint");
+  if (!hint) return;
+  const rec = ex ? findTodayRecord(ex) : null;
+  if (rec) {
+    hint.textContent = `📌 本日の「${ex}」に追記します（現在 ${rec.sets.length} セット）`;
+    hint.hidden = false;
+  } else {
+    hint.hidden = true;
+  }
+}
+
+// 種目選択時のセット欄プリフィル
 function prefillLastSets(exercise) {
+  // 本日すでに同種目があれば「追記」なので、空の1行から始める
+  if (findTodayRecord(exercise)) {
+    setsContainer.innerHTML = "";
+    addSetRow();
+    updateContinueHint();
+    return;
+  }
+  // それ以外は直近の同種目セットをテンプレとして再現
   const past = records.filter(r => r.exercise === exercise).sort((a, b) => b.date.localeCompare(a.date));
-  if (!past.length) return;
-  setsContainer.innerHTML = "";
-  past[0].sets.forEach(s => addSetRow(s.weight, s.reps));
+  if (past.length) {
+    setsContainer.innerHTML = "";
+    past[0].sets.forEach(s => addSetRow(s.weight, s.reps));
+  }
+  updateContinueHint();
 }
 
 $("#f-bodypart").addEventListener("change", refreshExerciseList);
+$("#f-exercise").addEventListener("input", updateContinueHint);
 $("#f-exercise").addEventListener("change", () => {
   const ex = $("#f-exercise").value.trim();
   if (ex && EXERCISE_TO_PART[ex]) $("#f-bodypart").value = EXERCISE_TO_PART[ex];
+  updateContinueHint();
 });
 
 $("#record-form").addEventListener("submit", e => {
@@ -204,14 +237,17 @@ $("#record-form").addEventListener("submit", e => {
 
   if (!sets.length) { alert("セットを1つ以上入力してください"); return; }
 
-  records.push({
-    id: newId(),
-    date: $("#f-date").value,
-    exercise: $("#f-exercise").value.trim(),
-    bodyPart: $("#f-bodypart").value,
-    sets,
-    memo: $("#f-memo").value.trim()
-  });
+  const date = $("#f-date").value;
+  const exercise = $("#f-exercise").value.trim();
+  const memo = $("#f-memo").value.trim();
+  const existing = findTodayRecord(exercise);
+  if (existing) {
+    // 同じ日・同じ種目 → 既存レコードにセットを追記
+    existing.sets.push(...sets);
+    if (memo) existing.memo = existing.memo ? existing.memo + " / " + memo : memo;
+  } else {
+    records.push({ id: newId(), date, exercise, bodyPart: $("#f-bodypart").value, sets, memo });
+  }
   saveRecords();
 
   // フォームは日付・部位を保持し、種目・セットのみリセット
@@ -221,6 +257,7 @@ $("#record-form").addEventListener("submit", e => {
   addSetRow();
   refreshExerciseList();
   renderTodaySummary();
+  updateContinueHint();
 
   const msg = $("#save-msg");
   msg.hidden = false;
@@ -677,7 +714,7 @@ $("#clear-all").addEventListener("click", () => {
 
 initBodyPartSelect();
 $("#f-date").value = todayStr();
-$("#f-date").addEventListener("change", renderTodaySummary);
+$("#f-date").addEventListener("change", () => { renderTodaySummary(); updateContinueHint(); });
 addSetRow();
 refreshExerciseList();
 renderTodaySummary();
