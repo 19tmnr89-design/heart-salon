@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101722">
+<title>電力論述トレーナー</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <h1>⚡ 電力論述トレーナー</h1>
+  <p class="app-sub">発電・変電・送電・配電の論述対策</p>
+</header>
+
+<main>
+
+  <!-- ============ 出題タブ ============ -->
+  <section id="tab-quiz" class="tab-panel active">
+
+    <div class="filter-card">
+      <div class="filter-row">
+        <label>分野</label>
+        <div id="field-chips" class="chip-row"></div>
+      </div>
+      <div class="filter-row">
+        <label>細目</label>
+        <div id="category-chips" class="chip-row"></div>
+      </div>
+      <div class="filter-row">
+        <label>出題範囲</label>
+        <div id="mode-chips" class="chip-row">
+          <button class="chip active" data-mode="all">すべて</button>
+          <button class="chip" data-mode="unseen">未学習</button>
+          <button class="chip" data-mode="review">要復習</button>
+        </div>
+      </div>
+      <div class="filter-summary">
+        <span id="filter-count">— 問</span>
+        <button id="btn-shuffle" class="btn-ghost">🔀 シャッフル</button>
+      </div>
+    </div>
+
+    <div id="quiz-progress" class="quiz-progress" hidden>
+      <div class="bar"><div id="quiz-progress-fill" class="bar-fill"></div></div>
+      <span id="quiz-progress-text"></span>
+    </div>
+
+    <div id="quiz-area"></div>
+
+    <div id="quiz-nav" class="quiz-nav" hidden>
+      <button id="btn-prev" class="btn-sub">← 前の問題</button>
+      <button id="btn-next" class="btn-main">次の問題 →</button>
+    </div>
+
+  </section>
+
+  <!-- ============ 一覧タブ ============ -->
+  <section id="tab-list" class="tab-panel">
+    <div class="filter-card">
+      <input type="search" id="search-box" placeholder="🔍 キーワードで検索（例: キャビテーション）" autocomplete="off">
+    </div>
+    <div id="list-area"></div>
+  </section>
+
+  <!-- ============ 進捗タブ ============ -->
+  <section id="tab-stats" class="tab-panel">
+    <div id="stats-area"></div>
+    <div class="danger-zone">
+      <button id="btn-reset" class="btn-danger">学習記録をリセット</button>
+    </div>
+  </section>
+
+</main>
+
+<nav class="tabbar">
+  <button class="tab-btn active" data-tab="quiz"><span>📝</span>出題</button>
+  <button class="tab-btn" data-tab="list"><span>📚</span>一覧</button>
+  <button class="tab-btn" data-tab="stats"><span>📊</span>進捗</button>
+</nav>
+
+<script src="questions.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
