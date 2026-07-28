@@ -20,21 +20,22 @@
   <section id="tab-quiz" class="tab-panel active">
 
     <div class="filter-card">
-      <div class="filter-row">
+      <div class="filter-row" id="row-field">
         <label>分野</label>
         <div id="field-chips" class="chip-row"></div>
       </div>
-      <div class="filter-row">
+      <div class="filter-row" id="row-category">
         <label>細目</label>
         <div id="category-chips" class="chip-row"></div>
       </div>
       <div class="filter-row">
         <label>出題範囲</label>
         <div id="mode-chips" class="chip-row">
-          <button class="chip active" data-mode="all">すべて</button>
+          <button class="chip reco active" data-mode="reco">⭐ おすすめ</button>
+          <button class="chip" data-mode="all">すべて</button>
           <button class="chip" data-mode="unseen">未学習</button>
           <button class="chip" data-mode="weak">苦手（△×）</button>
-          <button class="chip" data-mode="due">復習おすすめ</button>
+          <button class="chip" data-mode="due">復習期</button>
         </div>
         <p id="mode-hint" class="hint"></p>
       </div>
