@@ -33,8 +33,10 @@
         <div id="mode-chips" class="chip-row">
           <button class="chip active" data-mode="all">すべて</button>
           <button class="chip" data-mode="unseen">未学習</button>
-          <button class="chip" data-mode="review">要復習</button>
+          <button class="chip" data-mode="weak">苦手（△×）</button>
+          <button class="chip" data-mode="due">復習おすすめ</button>
         </div>
+        <p id="mode-hint" class="hint"></p>
       </div>
       <div class="filter-summary">
         <span id="filter-count">— 問</span>
@@ -64,12 +66,41 @@
     <div id="list-area"></div>
   </section>
 
-  <!-- ============ 進捗タブ ============ -->
-  <section id="tab-stats" class="tab-panel">
-    <div id="stats-area"></div>
-    <div class="danger-zone">
-      <button id="btn-reset" class="btn-danger">学習記録をリセット</button>
+  <!-- ============ 記録タブ ============ -->
+  <section id="tab-record" class="tab-panel">
+
+    <div id="rec-summary"></div>
+
+    <h2 class="sec-title">学習カレンダー <span>直近12週間</span></h2>
+    <div id="rec-heatmap"></div>
+
+    <h2 class="sec-title">到達状況</h2>
+    <div id="rec-progress"></div>
+
+    <h2 class="sec-title">メモを残した問題</h2>
+    <div id="rec-memos"></div>
+
+    <h2 class="sec-title">学習履歴 <span>新しい順</span></h2>
+    <div id="rec-history"></div>
+
+    <h2 class="sec-title">データの管理</h2>
+    <div class="data-card">
+      <p class="data-note">
+        学習記録はこの端末のブラウザ内（localStorage）にのみ保存されます。
+        端末を変えるとき、ブラウザのデータを消すときは、事前に書き出して保存してください。
+      </p>
+      <div class="data-btns">
+        <button id="btn-export" class="btn-sub">⬇️ 記録を書き出す</button>
+        <button id="btn-import" class="btn-sub">⬆️ 記録を読み込む</button>
+      </div>
+      <p id="data-msg" class="data-msg" hidden></p>
+      <input type="file" id="file-input" accept="application/json,.json" hidden>
     </div>
+
+    <div class="danger-zone">
+      <button id="btn-reset" class="btn-danger">学習記録をすべて削除</button>
+    </div>
+
   </section>
 
 </main>
@@ -77,7 +108,7 @@
 <nav class="tabbar">
   <button class="tab-btn active" data-tab="quiz"><span>📝</span>出題</button>
   <button class="tab-btn" data-tab="list"><span>📚</span>一覧</button>
-  <button class="tab-btn" data-tab="stats"><span>📊</span>進捗</button>
+  <button class="tab-btn" data-tab="record"><span>📊</span>記録</button>
 </nav>
 
 <script src="questions.js"></script>
