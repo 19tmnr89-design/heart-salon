@@ -86,12 +86,145 @@
     return d !== null && Date.now() >= d;
   }
 
+  /* ================= おすすめの選定 =================
+   * 学習記録から、いま解くべき順に問題を並べる。
+   * 外部サービスは使わず、次の4つを点数化して足し合わせるだけの仕組み。
+   *   ① 復習期日をどれだけ過ぎたか   ② 直近の自己採点の弱さ
+   *   ③ 未学習かどうか               ④ その細目の習得率の低さ
+   * 点数の内訳から「なぜこの問題か」を出題カードに表示する。
+   */
+  var RECO_SIZE = 30;        // おすすめとして並べる問題数
+  var RECO_POOL = 60;        // 細目を散らすための候補数
+  var WEAK_RATE_MAX = 0.7;   // これ未満の習得率の細目を「弱点」とみなす
+
+  function intervalDays(r) {
+    if (r.s === 'ok') return (r.n || 0) >= 2 ? INTERVAL.okRepeat : INTERVAL.ok;
+    return INTERVAL[r.s] || 7;
+  }
+
+  /* 細目ごとの習得率（○の割合）を一度だけ計算して使い回す */
+  function buildOkRates() {
+    var m = {};
+    DATA.questions.forEach(function (q) {
+      var k = q.field + '/' + q.category;
+      if (!m[k]) m[k] = { ok: 0, n: 0 };
+      m[k].n++;
+      if (statusOf(q.id) === 'ok') m[k].ok++;
+    });
+    Object.keys(m).forEach(function (k) { m[k].rate = m[k].n ? m[k].ok / m[k].n : 0; });
+    return m;
+  }
+
+  function scoreQuestion(q, rates) {
+    var r = rec(q.id);
+    var parts = {};
+
+    if (!r || !r.s) {
+      parts.new = 55;                                   // 未学習
+    } else {
+      var ratio = (Date.now() - r.t) / DAY / intervalDays(r);
+      parts.due = Math.max(0, Math.min(ratio, 3)) * 30; // 期日の超過度（頭打ちあり）
+      parts.weak = r.s === 'ng' ? 45 : r.s === 'vague' ? 28 : 0;
+      if (r.s === 'ok' && (r.n || 0) >= 3) parts.due *= 0.7;   // 何度も書けている問題は控えめに
+    }
+
+    var rate = (rates[q.field + '/' + q.category] || { rate: 0 }).rate;
+    parts.cat = (1 - rate) * 30;                        // 弱い細目を底上げ
+    /* 習得の進んでいない細目では基本問題から、進んだ細目では応用問題を優先 */
+    parts.lv = rate < 0.4 ? (4 - q.level) * 5 : q.level * 4;
+
+    var score = 0;
+    Object.keys(parts).forEach(function (k) { score += parts[k]; });
+    return { score: score, parts: parts };
+  }
+
+  var RECO_LABEL = {
+    due: '復習の時期',
+    weak: '苦手な問題',
+    new: '未学習',
+    cat: '弱点の細目',
+    round: '総復習'
+  };
+
+  /* 寄与の最も大きい要素を、その問題を薦める理由として返す */
+  function recoReason(parts, rate) {
+    var best = null, bestV = -1;
+    ['due', 'weak', 'new'].forEach(function (k) {
+      if (parts[k] > bestV && parts[k] > 12) { best = k; bestV = parts[k]; }
+    });
+    /* 突出した理由がない場合は細目の習得率で言い分ける */
+    if (!best) best = rate < WEAK_RATE_MAX ? 'cat' : 'round';
+    return RECO_LABEL[best];
+  }
+
+  function buildRecommended() {
+    var rates = buildOkRates();
+    var scored = DATA.questions.map(function (q) {
+      var s = scoreQuestion(q, rates);
+      var rate = (rates[q.field + '/' + q.category] || { rate: 0 }).rate;
+      return { q: q, score: s.score, reason: recoReason(s.parts, rate) };
+    });
+    scored.sort(function (a, b) { return b.score - a.score; });
+
+    /* 上位の候補から、同じ細目が続かないように取り出す */
+    var pool = scored.slice(0, RECO_POOL);
+    var out = [], lastCat = '';
+    while (out.length < RECO_SIZE && pool.length) {
+      var pick = 0;
+      for (var i = 0; i < pool.length; i++) {
+        if (pool[i].q.category !== lastCat) { pick = i; break; }
+      }
+      var e = pool.splice(pick, 1)[0];
+      lastCat = e.q.category;
+      recoReasonById[e.q.id] = e.reason;
+      out.push(e.q);
+    }
+    return out;
+  }
+
+  var recoReasonById = {};
+
+  /* おすすめの内訳（記録タブのバナー用） */
+  function recoBreakdown() {
+    var b = { due: 0, weak: 0, unseen: 0 };
+    DATA.questions.forEach(function (q) {
+      var s = statusOf(q.id);
+      if (!s) b.unseen++;
+      else {
+        if (isDue(q.id)) b.due++;
+        if (s === 'ng' || s === 'vague') b.weak++;
+      }
+    });
+    return b;
+  }
+
+  /* 習得率の低い細目。学習に着手していて、かつ習得率がWEAK_RATE_MAXに満たないものだけを挙げる */
+  function weakCategories(limit) {
+    var rates = buildOkRates();
+    var studied = {};
+    DATA.questions.forEach(function (q) {
+      if (statusOf(q.id)) {
+        var k = q.field + '/' + q.category;
+        studied[k] = (studied[k] || 0) + 1;
+      }
+    });
+    var list = [];
+    Object.keys(rates).forEach(function (k) {
+      if (!studied[k] || rates[k].rate >= WEAK_RATE_MAX) return;
+      var parts = k.split('/');
+      list.push({ field: parts[0], cat: parts[1], rate: rates[k].rate, ok: rates[k].ok, n: rates[k].n });
+    });
+    list.sort(function (a, b) { return a.rate - b.rate; });
+    return list.slice(0, limit || 3);
+  }
+
   /* ================= 状態 ================= */
   var state = {
     field: DATA.fields[0].id,
     category: 'all',
-    mode: 'all',
+    mode: 'reco',
     deck: [],
+    recoDeck: null,
     index: 0,
     revealed: false,
     search: ''
@@ -151,6 +284,18 @@
 
   /* ================= 出題対象の抽出 ================= */
   function buildDeck() {
+    if (state.mode === 'reco') {
+      /* 選定結果は保持する。採点のたびに並びが変わると読んでいる問題を見失うため */
+      if (!state.recoDeck) {
+        recoReasonById = {};
+        state.recoDeck = buildRecommended();
+      }
+      state.deck = state.recoDeck;
+      if (state.index >= state.deck.length) state.index = 0;
+      if (state.index < 0) state.index = 0;
+      return;
+    }
+    state.recoDeck = null;
     var list = questionsOfField(state.field);
     if (state.category !== 'all') {
       list = list.filter(function (q) { return q.category === state.category; });
@@ -205,6 +350,7 @@
   }
 
   var MODE_HINT = {
+    reco: '学習記録から、復習の時期・苦手・未学習・弱点の細目を点数化して、全分野の中から解くべき順に並べています。1問ごとに選んだ理由が表示されます。',
     all: '',
     unseen: 'まだ自己採点していない問題だけを出題します。',
     weak: '「△ あいまい」「× 書けない」を付けた問題を出題します。',
@@ -222,8 +368,16 @@
     hint.textContent = MODE_HINT[state.mode] || '';
     hint.hidden = !MODE_HINT[state.mode];
 
+    /* おすすめは全分野から選ぶので、分野・細目の絞り込みは使わない */
+    var reco = state.mode === 'reco';
+    $('#row-field').classList.toggle('locked', reco);
+    $('#row-category').classList.toggle('locked', reco);
+    $('#btn-shuffle').textContent = reco ? '🔄 選び直す' : '🔀 シャッフル';
+
     buildDeck();
-    $('#filter-count').textContent = state.deck.length + ' 問';
+    $('#filter-count').textContent = reco
+      ? '全分野から ' + state.deck.length + ' 問'
+      : state.deck.length + ' 問';
 
     var area = $('#quiz-area');
     var nav = $('#quiz-nav');
@@ -247,6 +401,7 @@
   }
 
   function emptyMessage() {
+    if (state.mode === 'reco') return 'おすすめを選べませんでした。<br>「すべて」に切り替えて出題してください。';
     if (questionsOfField(state.field).length === 0) {
       return state.field + '分野の問題は準備中です。<br>questions.js に追加すると、そのまま出題されます。';
     }
@@ -263,6 +418,9 @@
 
     html += '<div class="qcard-head">';
     html += '<div class="qmeta">';
+    if (state.mode === 'reco' && recoReasonById[q.id]) {
+      html += '<span class="tag reco">⭐ ' + esc(recoReasonById[q.id]) + '</span>';
+    }
     html += '<span class="tag">' + esc(q.field) + '</span>';
     html += '<span class="tag cat">' + esc(q.category) + '</span>';
     html += '<span class="tag lv">' + levelLabel(q.level) + '</span>';
@@ -395,17 +553,30 @@
 
   function renderSummary(byDay) {
     var today = byDay[dayKey(Date.now())] || 0;
-    var dueCount = DATA.questions.filter(function (q) { return isDue(q.id); }).length;
     var html = '<div class="sum-cards">';
     html += sumCard(today, '今日の学習', '問');
     html += sumCard(streakDays(byDay), '連続学習', '日');
     html += sumCard(Object.keys(byDay).length, '学習した日', '日');
     html += sumCard(store.log.length, 'のべ学習', '回');
     html += '</div>';
-    if (dueCount > 0) {
-      html += '<button class="due-banner" id="btn-goto-due">' +
-              '🔁 復習時期の問題が <b>' + dueCount + '</b> 問あります　→ 出題する</button>';
+
+    var b = recoBreakdown();
+    html += '<button class="reco-banner" id="btn-goto-reco">';
+    html += '<span class="rb-title">⭐ いま解くべき問題を出題する</span>';
+    html += '<span class="rb-sub">復習の時期 ' + b.due + ' 問　苦手 ' + b.weak + ' 問　未学習 ' + b.unseen + ' 問</span>';
+    html += '</button>';
+
+    var weak = weakCategories(3);
+    if (weak.length) {
+      html += '<div class="weak-box"><div class="weak-head">習得率の低い細目</div>';
+      weak.forEach(function (w) {
+        html += '<div class="weak-row" data-field="' + esc(w.field) + '" data-cat="' + esc(w.cat) + '">' +
+                '<span class="weak-name">' + esc(w.field + '・' + w.cat) + '</span>' +
+                '<span class="weak-rate">○ ' + w.ok + ' / ' + w.n + '</span></div>';
+      });
+      html += '</div>';
     }
+
     $('#rec-summary').innerHTML = html;
   }
   function sumCard(num, label, unit) {
@@ -614,6 +785,7 @@
     reader.onload = function () {
       try {
         var added = mergeRecord(JSON.parse(reader.result));
+        state.recoDeck = null;
         dataMsg('読み込みました。' + added + ' 問の記録を反映し、履歴は ' + store.log.length + ' 件になりました。');
         renderRecord();
       } catch (e) {
@@ -687,6 +859,13 @@
   });
 
   $('#btn-shuffle').addEventListener('click', function () {
+    if (state.mode === 'reco') {
+      state.recoDeck = null;      // 最新の記録で選び直す
+      state.index = 0;
+      state.revealed = false;
+      renderQuiz();
+      return;
+    }
     buildDeck();
     shuffleDeck();
     renderQuiz();
@@ -767,19 +946,23 @@
   });
 
   $('#rec-summary').addEventListener('click', function (e) {
-    if (!e.target.closest('#btn-goto-due')) return;
-    // 復習時期の問題が最も多い分野を開く
-    var best = null, bestN = -1;
-    DATA.fields.forEach(function (f) {
-      var n = questionsOfField(f.id).filter(function (q) { return isDue(q.id); }).length;
-      if (n > bestN) { bestN = n; best = f.id; }
-    });
-    if (best) state.field = best;
-    state.category = 'all';
-    state.mode = 'due';
-    state.index = 0;
-    state.revealed = false;
-    switchTab('quiz');
+    if (e.target.closest('#btn-goto-reco')) {
+      state.mode = 'reco';
+      state.recoDeck = null;
+      state.index = 0;
+      state.revealed = false;
+      switchTab('quiz');
+      return;
+    }
+    var row = e.target.closest('.weak-row');
+    if (row) {                       // 弱点の細目をその場で出題する
+      state.field = row.dataset.field;
+      state.category = row.dataset.cat;
+      state.mode = 'all';
+      state.index = 0;
+      state.revealed = false;
+      switchTab('quiz');
+    }
   });
 
   $('#rec-memos').addEventListener('click', function (e) {
@@ -805,6 +988,7 @@
   $('#btn-reset').addEventListener('click', function () {
     if (!confirm('自己採点・学習履歴・メモをすべて削除します。よろしいですか？\n（元に戻せません。必要なら先に書き出してください）')) return;
     store = blankStore();
+    state.recoDeck = null;
     save();
     renderRecord();
     dataMsg('学習記録を削除しました。');
