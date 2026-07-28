@@ -33,6 +33,11 @@
     if (!d.v) return migrateV1(d);
     if (!d.q || typeof d.q !== 'object') d.q = {};
     if (!Array.isArray(d.log)) d.log = [];
+    /* 評価もメモもない空の記録は掃除する（旧版が作っていたもの） */
+    Object.keys(d.q).forEach(function (id) {
+      var r = d.q[id];
+      if (!r || (!r.s && !(r.memo && r.memo.trim()))) delete d.q[id];
+    });
     return d;
   }
 
@@ -66,9 +71,14 @@
   }
 
   function setMemo(id, text) {
-    var prev = store.q[id] || { n: 0, t: 0 };
+    var prev = store.q[id];
+    if (!prev) {
+      if (!text) return;                        // 空欄のまま通り過ぎた問題の記録は作らない
+      prev = { n: 0, t: 0 };
+      store.q[id] = prev;
+    }
     prev.memo = text;
-    store.q[id] = prev;
+    if (!text && !prev.s) delete store.q[id];   // 評価もメモも残っていなければ持たない
     save();
   }
 
