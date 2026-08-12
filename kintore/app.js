@@ -302,16 +302,145 @@ function bindDeleteButtons(root, refresh) {
   });
 }
 
+/* ---- カレンダー ---- */
+
+// 表示中の月と、選択中の日
+let calYear, calMonth;   // calMonth は 0-11
+let selectedDate = null;
+
+function dateKey(y, m, d) {
+  return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+// その月の記録がある日 → その日のレコード
+function recordsByDate() {
+  const map = {};
+  for (const r of records) (map[r.date] ??= []).push(r);
+  return map;
+}
+
+function renderCalendar() {
+  const byDate = recordsByDate();
+  $("#cal-month").textContent = `${calYear}年 ${calMonth + 1}月`;
+
+  const first = new Date(calYear, calMonth, 1);
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const startDow = first.getDay(); // 0=日
+  const todayStrVal = todayStr();
+
+  // その月のサマリー
+  let monthDays = 0, monthVol = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = dateKey(calYear, calMonth, d);
+    if (byDate[key]) {
+      monthDays++;
+      monthVol += byDate[key].reduce((s, r) => s + recordVolume(r), 0);
+    }
+  }
+  $("#cal-summary").textContent = monthDays
+    ? `${monthDays}日 / ${Math.round(monthVol).toLocaleString()}kg`
+    : "記録なし";
+
+  const cells = [];
+  for (let i = 0; i < startDow; i++) cells.push(`<div class="cal-cell empty"></div>`);
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = dateKey(calYear, calMonth, d);
+    const recs = byDate[key];
+    const dow = (startDow + d - 1) % 7;
+    const cls = [
+      "cal-cell",
+      recs ? "done" : "",
+      key === todayStrVal ? "today" : "",
+      key === selectedDate ? "selected" : "",
+      dow === 0 ? "sun" : dow === 6 ? "sat" : ""
+    ].filter(Boolean).join(" ");
+    // 記録がある日は丸で囲む
+    cells.push(`<button type="button" class="${cls}" data-date="${key}"${recs ? "" : " disabled"}>
+      <span class="cal-day">${d}</span>
+      ${recs ? `<span class="cal-dot"></span>` : ""}
+    </button>`);
+  }
+  $("#calendar").innerHTML = cells.join("");
+
+  $$("#calendar .cal-cell[data-date]:not([disabled])").forEach(btn => {
+    btn.addEventListener("click", () => {
+      selectedDate = selectedDate === btn.dataset.date ? null : btn.dataset.date;
+      renderCalendar();
+      renderDayDetail();
+    });
+  });
+}
+
+function renderDayDetail() {
+  const box = $("#day-detail");
+  if (!selectedDate) { box.innerHTML = ""; return; }
+  const recs = records.filter(r => r.date === selectedDate);
+  if (!recs.length) { box.innerHTML = ""; return; }
+
+  const sets = recs.reduce((s, r) => s + r.sets.length, 0);
+  const reps = recs.reduce((s, r) => s + r.sets.reduce((a, x) => a + (x.reps || 0), 0), 0);
+  const vol = recs.reduce((s, r) => s + recordVolume(r), 0);
+
+  box.innerHTML = `
+    <div class="day-detail-head">
+      <span class="dd-date">${esc(fmtDate(selectedDate))}</span>
+      <button type="button" id="dd-close" class="dd-close" title="閉じる">✕</button>
+    </div>
+    <div class="dd-stats">
+      <span><b>${recs.length}</b>種目</span>
+      <span><b>${sets}</b>セット</span>
+      <span><b>${reps}</b>レップ</span>
+      <span><b>${Math.round(vol).toLocaleString()}</b>kg</span>
+    </div>
+    ${recs.map(recCardHTML).join("")}`;
+
+  $("#dd-close").addEventListener("click", () => {
+    selectedDate = null;
+    renderCalendar();
+    renderDayDetail();
+  });
+  bindDeleteButtons(box, () => { renderCalendar(); renderDayDetail(); });
+}
+
+function shiftMonth(delta) {
+  const d = new Date(calYear, calMonth + delta, 1);
+  calYear = d.getFullYear();
+  calMonth = d.getMonth();
+  renderCalendar();
+}
+
+$("#cal-prev").addEventListener("click", () => shiftMonth(-1));
+$("#cal-next").addEventListener("click", () => shiftMonth(1));
+$("#cal-today").addEventListener("click", () => {
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+  renderCalendar();
+});
+
 function renderHistory() {
+  if (calYear === undefined) {
+    // 初回は「記録がある最新の月」を開く
+    const latest = records.map(r => r.date).sort().pop();
+    const base = latest ? new Date(latest.slice(0, 4), +latest.slice(5, 7) - 1, 1) : new Date();
+    calYear = base.getFullYear();
+    calMonth = base.getMonth();
+  }
+  renderCalendar();
+  renderDayDetail();
+  renderSearchResults();
+}
+
+/* ---- 検索（従来のリスト表示） ---- */
+
+function renderSearchResults() {
   const q = $("#history-filter").value.trim();
   const list = $("#history-list");
-  let filtered = records;
-  if (q) {
-    filtered = records.filter(r =>
-      r.exercise.includes(q) || (r.bodyPart || "").includes(q) || (r.memo || "").includes(q));
-  }
+  if (!q) { list.innerHTML = ""; return; }
+  const filtered = records.filter(r =>
+    r.exercise.includes(q) || (r.bodyPart || "").includes(q) || (r.memo || "").includes(q));
   if (!filtered.length) {
-    list.innerHTML = `<p class="empty-note">${q ? "該当する記録がありません" : "まだ記録がありません"}</p>`;
+    list.innerHTML = `<p class="empty-note">該当する記録がありません</p>`;
     return;
   }
   const byDate = {};
@@ -326,10 +455,10 @@ function renderHistory() {
         ${byDate[d].map(recCardHTML).join("")}
       </div>`;
   }).join("");
-  bindDeleteButtons(list, renderHistory);
+  bindDeleteButtons(list, renderSearchResults);
 }
 
-$("#history-filter").addEventListener("input", renderHistory);
+$("#history-filter").addEventListener("input", renderSearchResults);
 
 /* ================= 分析 ================= */
 
