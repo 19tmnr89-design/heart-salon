@@ -126,47 +126,57 @@ main { padding: 10px 12px 0; }
 
 /* ---------- 今回のリスト ---------- */
 
+/* 1品目1行にまとめて、表示できる行数を稼いでいる */
 .item-list { list-style: none; margin: 0; padding: 0; }
 .item-row {
-  display: flex; flex-direction: column; gap: 7px;
-  padding: 10px 0; border-bottom: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 5px;
+  padding: 7px 0; border-bottom: 1px solid var(--line);
 }
 .item-row:last-child { border-bottom: 0; }
-.item-row.is-checked .item-name { color: var(--sub); text-decoration: line-through; }
+.item-row.is-checked .item-name-btn { color: var(--sub); text-decoration: line-through; }
 
-.item-top { display: flex; align-items: center; gap: 8px; }
-.item-main {
-  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px;
-  background: none; border: 0; padding: 0; text-align: left; cursor: pointer;
+.item-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.item-name-btn {
+  flex: 0 1 auto; background: none; border: 0; padding: 0;
+  font-size: 15px; font-weight: 600; text-align: left; cursor: pointer;
 }
-.item-name { font-size: 16px; font-weight: 600; }
+/* 選び方のコツは押したときだけ開く */
+.tip-btn {
+  flex: none; width: 27px; height: 27px; padding: 0;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--bg);
+  font-size: 13px; line-height: 1; cursor: pointer;
+}
+.tip-btn.is-on { background: var(--tip-bg); border-color: var(--tip-bg); }
 .item-tip {
   font-size: 12px; color: var(--tip-text); background: var(--tip-bg);
-  border-radius: 6px; padding: 3px 6px; line-height: 1.45;
+  border-radius: 6px; padding: 4px 7px; line-height: 1.45;
 }
 
+.ctl { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-left: auto; justify-content: flex-end; }
 .qty-ctl { display: flex; align-items: center; gap: 4px; flex: none; }
 .qty-btn {
-  width: 34px; height: 34px; border-radius: 8px;
+  width: 31px; height: 31px; border-radius: 8px;
   border: 1px solid var(--line); background: var(--bg);
-  font-size: 18px; line-height: 1; cursor: pointer;
+  font-size: 17px; line-height: 1; cursor: pointer;
 }
 .qty-val {
-  min-width: 58px; text-align: center; display: flex;
+  min-width: 52px; text-align: center; display: flex;
   align-items: baseline; justify-content: center; gap: 1px;
 }
-.qty-val b { font-size: 16px; font-weight: 700; }
+.qty-val b { font-size: 15px; font-weight: 700; }
 .qty-val small { font-size: 11px; color: var(--sub); }
 
 /* 数量が選択式の品目（キャベツ・ダイコンなど） */
-.amount-row, .amount-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.amount-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .amt {
-  min-height: 38px; padding: 8px 12px; border-radius: 999px;
+  min-height: 31px; padding: 5px 10px; border-radius: 999px;
   border: 1px solid var(--line); background: var(--bg); color: var(--text);
-  font-size: 13px; cursor: pointer;
+  font-size: 12px; cursor: pointer;
 }
 .amt.is-on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
 .amt-other { border-style: dashed; }
+/* 編集モーダルの中は指で押しやすい大きさにする */
+.amount-chips .amt { min-height: 40px; padding: 9px 14px; font-size: 14px; }
 
 /* ---------- マスターのチップ ---------- */
 
