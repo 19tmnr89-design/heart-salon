@@ -19,8 +19,7 @@ export const CATEGORY_ORDER = [
   "野菜",
   "きのこ",
   "果物",
-  "大豆製品",
-  "加工品",
+  "大豆製品・加工品",
   "肉",
   "魚",
   "調味料",
@@ -93,21 +92,21 @@ export const MASTER_PRESET = [
   { name: "りんご", category: "果物", unit: "個", amounts: ["1個", "2個", "3個", "1袋"], tip: "お尻が黄色みを帯び、持つとずっしり重いもの" },
   { name: "みかん", category: "果物", unit: "袋", amounts: ["1袋", "1箱"], tip: "皮が薄くヘタが小さい、扁平で色が濃いもの" },
   { name: "いちご", category: "果物", unit: "パック", amounts: ["1パック", "2パック"], tip: "ヘタが濃い緑で反り返り、粒の表面にツヤがあるもの" },
-  { name: "キウイ（グリーン）", category: "果物", unit: "個", amounts: ["1個", "2個", "3個"], tip: "軽く握って全体が均一に少しへこむくらいが食べ頃。酸味がしっかりある" },
-  { name: "キウイ（ゴールド）", category: "果物", unit: "個", amounts: ["1個", "2個", "3個"], tip: "グリーンより甘く酸味が少ない。先端を押して少し弾力があれば食べ頃" },
+  { name: "グリーンキウイ", category: "果物", unit: "個", amounts: ["1個", "2個", "3個"], tip: "軽く握って全体が均一に少しへこむくらいが食べ頃。酸味がしっかりある" },
+  { name: "ゴールドキウイ", category: "果物", unit: "個", amounts: ["1個", "2個", "3個"], tip: "グリーンより甘く酸味が少ない。先端を押して少し弾力があれば食べ頃" },
   { name: "デラウェア", category: "果物", unit: "房", amounts: ["1房", "2房"], tip: "小粒で種なし。粒が密について色が濃く、軸が緑のもの" },
   { name: "巨峰", category: "果物", unit: "房", yomi: "きょほう", amounts: ["1房", "2房"], tip: "大粒。皮に白い粉（ブルーム）がしっかりつき、軸が太く緑のもの" },
   { name: "スイカ", category: "果物", unit: "玉", amounts: ["1/4玉", "半玉", "1玉"], defaultAmount: "1/4玉", tip: "縞模様がくっきりし、カットなら種が黒く果肉と皮の境目がはっきりしているもの" },
+  { name: "冷凍ブルーベリー", category: "果物", unit: "袋", yomi: "れいとうぶるーべりー", amounts: ["1袋", "2袋"], tip: "袋の中で粒が固まっていないもの（溶けて再凍結したサイン）" },
 
-  /* ---------------- 大豆製品 ---------------- */
-  { name: "豆腐", category: "大豆製品", unit: "丁", yomi: "とうふ", amounts: ["1丁", "2丁", "3丁"], tip: "賞味期限を確認（木綿か絹かも注意）" },
-  { name: "納豆", category: "大豆製品", unit: "パック", yomi: "なっとう", amounts: ["1パック", "2パック"], tip: "賞味期限を確認（粒サイズ・タレの種類に注意）" },
-  { name: "油揚げ", category: "大豆製品", unit: "袋", yomi: "あぶらあげ", amounts: ["1袋", "2袋"], tip: "色が濃すぎず、油の酸化した匂いがないもの" },
-  { name: "厚揚げ", category: "大豆製品", unit: "パック", yomi: "あつあげ", amounts: ["1パック", "2パック"], tip: "角が崩れておらず、表面が乾いていないもの" },
-
-  /* ---------------- 加工品 ---------------- */
-  { name: "こんにゃく", category: "加工品", unit: "枚", amounts: ["1枚", "2枚"], tip: "板こんにゃく・しらたき等、用途を確認" },
-  { name: "キムチ", category: "加工品", unit: "パック", amounts: ["1パック", "2パック"], tip: "発酵度合いや賞味期限を確認" },
+  /* ---------------- 大豆製品・加工品 ---------------- */
+  { name: "木綿豆腐", category: "大豆製品・加工品", unit: "丁", yomi: "もめんとうふ", amounts: ["1丁", "2丁", "3丁"], tip: "崩れにくく炒め物・麻婆豆腐向き。賞味期限を確認" },
+  { name: "絹ごし豆腐", category: "大豆製品・加工品", unit: "丁", yomi: "きぬごしとうふ", amounts: ["1丁", "2丁", "3丁"], tip: "なめらかで冷奴・味噌汁向き。賞味期限を確認" },
+  { name: "納豆", category: "大豆製品・加工品", unit: "パック", yomi: "なっとう", amounts: ["1パック", "2パック"], tip: "賞味期限を確認（粒サイズ・タレの種類に注意）" },
+  { name: "油揚げ", category: "大豆製品・加工品", unit: "袋", yomi: "あぶらあげ", amounts: ["1袋", "2袋"], tip: "色が濃すぎず、油の酸化した匂いがないもの" },
+  { name: "厚揚げ", category: "大豆製品・加工品", unit: "パック", yomi: "あつあげ", amounts: ["1パック", "2パック"], tip: "角が崩れておらず、表面が乾いていないもの" },
+  { name: "こんにゃく", category: "大豆製品・加工品", unit: "枚", amounts: ["1枚", "2枚"], tip: "板こんにゃく・しらたき等、用途を確認" },
+  { name: "キムチ", category: "大豆製品・加工品", unit: "パック", amounts: ["1パック", "2パック"], tip: "発酵度合いや賞味期限を確認" },
 
   /* ---------------- 肉 ---------------- */
   { name: "鶏むね肉", category: "肉", unit: "パック", yomi: "とりむねにく", tip: "身が厚く、ピンクがかった透明感があるもの（白すぎるものは避ける）" },
@@ -163,7 +162,7 @@ export const MASTER_PRESET = [
 
   /* ---------------- 日配 ---------------- */
   { name: "卵", category: "日配", unit: "パック", yomi: "たまご", amounts: ["1パック", "2パック"], tip: "ひび割れがないか、パックを開けて確認" },
-  { name: "食パン", category: "日配", unit: "袋", yomi: "しょくぱん", amounts: ["1袋", "2袋"], tip: "枚数（4枚切/6枚切/8枚切）を確認" },
+  { name: "食パン", category: "日配", unit: "袋", yomi: "しょくぱん", amounts: ["8枚切り", "6枚切り", "3枚", "サンドイッチ用"], tip: "超熟を選ぶ" },
   { name: "うどん", category: "日配", unit: "袋", tip: "" },
   { name: "焼きそば麺", category: "日配", unit: "袋", yomi: "やきそばめん", tip: "" },
   { name: "中華麺", category: "日配", unit: "袋", yomi: "ちゅうかめん", tip: "" },
@@ -186,7 +185,6 @@ export const MASTER_PRESET = [
   { name: "麦茶パック", category: "飲み物", unit: "袋", yomi: "むぎちゃぱっく", tip: "" },
   { name: "水", category: "飲み物", unit: "本", yomi: "みず", tip: "" },
   { name: "炭酸水", category: "飲み物", unit: "本", yomi: "たんさんすい", tip: "" },
-  { name: "ジュース", category: "飲み物", unit: "本", tip: "" },
   { name: "ビール", category: "飲み物", unit: "箱", tip: "" },
   { name: "コーヒー", category: "飲み物", unit: "袋", tip: "" },
 
@@ -198,6 +196,5 @@ export const MASTER_PRESET = [
   { name: "ゴミ袋", category: "日用品", unit: "袋", yomi: "ごみぶくろ", tip: "サイズ（30L/45L）を確認" },
   { name: "ラップ", category: "日用品", unit: "本", tip: "" },
   { name: "アルミホイル", category: "日用品", unit: "本", tip: "" },
-  { name: "キッチンペーパー", category: "日用品", unit: "袋", tip: "" },
-  { name: "ジップ袋", category: "日用品", unit: "箱", yomi: "じっぷぶくろ", tip: "" }
+  { name: "キッチンペーパー", category: "日用品", unit: "袋", tip: "" }
 ];
