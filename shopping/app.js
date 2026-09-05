@@ -35,7 +35,13 @@ const $  = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
 const CAT_RANK = new Map(CATEGORY_ORDER.map((c, i) => [c, i]));
-const catRank = (c) => (CAT_RANK.has(c) ? CAT_RANK.get(c) : CATEGORY_ORDER.length);
+// カテゴリ統合前に登録された品目を、統合後の売り場に読み替える
+const CAT_ALIAS = { "大豆製品": "大豆製品・加工品", "加工品": "大豆製品・加工品" };
+const canonCat = (c) => CAT_ALIAS[c] || c || "その他";
+const catRank = (c) => {
+  const k = canonCat(c);
+  return CAT_RANK.has(k) ? CAT_RANK.get(k) : CATEGORY_ORDER.length;
+};
 
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) =>
@@ -111,6 +117,7 @@ let items = [];        // 今回のリスト
 let metaDocs = [];     // master_meta
 let histDocs = [];     // 履歴（新しい順）
 let openCats = new Set(["野菜"]);   // 開いているカテゴリ
+let openTips = new Set();          // コツを開いている品目のID
 let searchWord = "";
 let editingId = null;  // 編集モーダルで開いている品目
 let modalAmounts = null;  // 編集モーダルの選択肢
@@ -327,26 +334,29 @@ function renderEdit() {
   $("#current-empty").hidden = list.length > 0;
   $("#btn-restore-last").hidden = histDocs.length === 0;
 
+  // 1品目1行に収めて表示できる行数を稼ぐ。選び方のコツは 💡 を押したときだけ開く
   $("#current-list").innerHTML = list.map((it) => {
     const opts = Array.isArray(it.amounts) && it.amounts.length ? it.amounts : null;
     const current = amountLabel(it);
+    const tipOpen = openTips.has(it.id);
     return `
-      <li class="item-row${opts ? " has-amounts" : ""}${it.isChecked ? " is-checked" : ""}" data-id="${esc(it.id)}">
+      <li class="item-row${it.isChecked ? " is-checked" : ""}" data-id="${esc(it.id)}">
         <div class="item-top">
-          <button class="item-main" data-act="edit" type="button">
-            <span class="item-name">${esc(it.name)}${it.isChecked ? " <span class='mini-tag'>カゴ済</span>" : ""}</span>
-            ${it.tip ? `<span class="item-tip">💡 ${esc(it.tip)}</span>` : ""}
-          </button>
-          ${it.amount ? "" : `
-          <div class="qty-ctl">
-            <button class="qty-btn" data-act="minus" type="button" aria-label="減らす">−</button>
-            <span class="qty-val"><b>${esc(it.quantity ?? 1)}</b><small>${esc(it.unit || "個")}</small></span>
-            <button class="qty-btn" data-act="plus" type="button" aria-label="増やす">＋</button>
-          </div>`}
+          <button class="item-name-btn" data-act="edit" type="button">${esc(it.name)}${it.isChecked ? " <span class='mini-tag'>カゴ済</span>" : ""}</button>
+          ${it.tip ? `<button class="tip-btn${tipOpen ? " is-on" : ""}" data-act="tip" type="button" aria-label="選び方のコツ">💡</button>` : ""}
+          <div class="ctl">
+            ${opts ? opts.map((a) =>
+              `<button type="button" class="amt${a === current ? " is-on" : ""}" data-act="amount" data-amt="${esc(a)}">${esc(a)}</button>`
+            ).join("") : ""}
+            ${it.amount ? "" : `
+            <div class="qty-ctl">
+              <button class="qty-btn" data-act="minus" type="button" aria-label="減らす">−</button>
+              <span class="qty-val"><b>${esc(it.quantity ?? 1)}</b><small>${esc(it.unit || "個")}</small></span>
+              <button class="qty-btn" data-act="plus" type="button" aria-label="増やす">＋</button>
+            </div>`}
+          </div>
         </div>
-        ${opts ? `<div class="amount-row">${opts.map((a) =>
-          `<button type="button" class="amt${a === current ? " is-on" : ""}" data-act="amount" data-amt="${esc(a)}">${esc(a)}</button>`
-        ).join("")}</div>` : ""}
+        ${it.tip && tipOpen ? `<div class="item-tip">💡 ${esc(it.tip)}</div>` : ""}
       </li>`;
   }).join("");
 
@@ -370,8 +380,9 @@ function renderMaster() {
 
   const byCat = new Map();
   for (const m of hit) {
-    if (!byCat.has(m.category)) byCat.set(m.category, []);
-    byCat.get(m.category).push(m);
+    const cat = canonCat(m.category);
+    if (!byCat.has(cat)) byCat.set(cat, []);
+    byCat.get(cat).push(m);
   }
   const cats = Array.from(byCat.keys()).sort((a, b) => catRank(a) - catRank(b));
   $("#master-empty").hidden = hit.length > 0;
@@ -389,8 +400,9 @@ function renderMaster() {
 
 function chipHtml(m, inList) {
   const on = inList.has(m.name);
+  // 選択済みは色だけで示す。文字を足すと幅が変わって、他のチップの位置がずれてしまう
   return `<button type="button" class="chip${on ? " is-on" : ""}${m.isCustom ? " is-custom" : ""}"
-    data-master="${esc(m.name)}"${m.tip ? ` title="${esc(m.tip)}"` : ""}>${esc(m.name)}${on ? " ✓" : ""}</button>`;
+    data-master="${esc(m.name)}"${m.tip ? ` title="${esc(m.tip)}"` : ""}>${esc(m.name)}</button>`;
 }
 
 /* ---- 画面B: 買い物モード ---- */
@@ -411,9 +423,10 @@ function renderShop() {
   // 売り場（カテゴリ）ごとにまとめる
   const groups = [];
   for (const it of todo) {
+    const cat = canonCat(it.category);
     const g = groups[groups.length - 1];
-    if (g && g.cat === it.category) g.items.push(it);
-    else groups.push({ cat: it.category, items: [it] });
+    if (g && g.cat === cat) g.items.push(it);
+    else groups.push({ cat, items: [it] });
   }
   $("#shop-todo").innerHTML = groups.map((g) => `
     <div class="shop-group">
@@ -508,7 +521,7 @@ function openItemModal(id) {
   $("#mi-unit").innerHTML = unitOptionsHtml(it.unit || "個");
   $("#mi-unit-other").value = UNIT_OPTIONS.includes(it.unit || "個") ? "" : (it.unit || "");
   syncUnitOther($("#mi-unit"), $("#mi-unit-other"));
-  $("#mi-category").value = CATEGORY_ORDER.includes(it.category) ? it.category : "その他";
+  $("#mi-category").value = CATEGORY_ORDER.includes(canonCat(it.category)) ? canonCat(it.category) : "その他";
   $("#mi-tip").value = it.tip || "";
 
   modalAmounts = Array.isArray(it.amounts) && it.amounts.length ? it.amounts : null;
@@ -588,21 +601,19 @@ async function copyShareUrl() {
 
 /* ==================== 同期ステータス ==================== */
 
-// 正常なときは表示しない（画面の面積を品目に使うため）
+// オフラインとエラーのときだけ表示する。
+// 送信中（hasPendingWrites）はタップのたびに一瞬バーが出て画面が動くので出さない。
 function updateSyncStatus() {
   const el = $("#sync-status");
-  if (!navigator.onLine || netCached) {
+  const show = !navigator.onLine || netCached;
+  if (show) {
     el.textContent = "📴 オフライン中（変更は端末に保存され、電波が戻ると自動送信されます）";
     el.className = "sync-status is-off";
-    el.hidden = false;
-  } else if (netPending) {
-    el.textContent = "⏳ 送信中…";
-    el.className = "sync-status is-pending";
-    el.hidden = false;
-  } else {
-    el.hidden = true;
   }
-  measureSticky();
+  if (el.hidden === show) {
+    el.hidden = !show;
+    measureSticky();
+  }
 }
 
 /* ==================== 初期化 ==================== */
@@ -631,6 +642,10 @@ function bindEvents() {
     if (btn.dataset.act === "plus") changeQty(it, +1);
     if (btn.dataset.act === "minus") changeQty(it, -1);
     if (btn.dataset.act === "amount") updateItem(it.id, { amount: btn.dataset.amt });
+    if (btn.dataset.act === "tip") {
+      if (openTips.has(it.id)) openTips.delete(it.id); else openTips.add(it.id);
+      renderEdit();
+    }
   });
 
   // マスターのチップ
