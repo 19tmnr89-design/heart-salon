@@ -23,8 +23,8 @@ export const CATEGORY_ORDER = [
   "肉",
   "魚",
   "調味料",
-  "日配",
-  "乳製品",
+  "麺類・米",
+  "卵・乳製品",
   "飲み物",
   "日用品",
   "その他"
@@ -160,25 +160,25 @@ export const MASTER_PRESET = [
   { name: "こしょう", category: "調味料", unit: "個", tip: "" },
   { name: "白ごま", category: "調味料", unit: "袋", yomi: "しろごま", tip: "" },
 
-  /* ---------------- 日配 ---------------- */
-  { name: "卵", category: "日配", unit: "パック", yomi: "たまご", amounts: ["1パック", "2パック"], tip: "ひび割れがないか、パックを開けて確認" },
-  { name: "食パン", category: "日配", unit: "袋", yomi: "しょくぱん", amounts: ["8枚切り", "6枚切り", "3枚", "サンドイッチ用"], tip: "超熟を選ぶ" },
-  { name: "うどん", category: "日配", unit: "袋", tip: "" },
-  { name: "焼きそば麺", category: "日配", unit: "袋", yomi: "やきそばめん", tip: "" },
-  { name: "中華麺", category: "日配", unit: "袋", yomi: "ちゅうかめん", tip: "" },
-  { name: "パスタ", category: "日配", unit: "袋", tip: "" },
-  { name: "ご飯パック", category: "日配", unit: "パック", yomi: "ごはんぱっく", tip: "" },
-  { name: "餃子の皮", category: "日配", unit: "袋", yomi: "ぎょうざのかわ", tip: "" },
-  { name: "米", category: "日配", unit: "袋", yomi: "こめ", tip: "" },
+  /* ---------------- 麺類・米 ---------------- */
+  { name: "食パン", category: "麺類・米", unit: "袋", yomi: "しょくぱん", amounts: ["8枚切り", "6枚切り", "3枚", "サンドイッチ用"], tip: "超熟を選ぶ" },
+  { name: "うどん", category: "麺類・米", unit: "袋", tip: "" },
+  { name: "焼きそば麺", category: "麺類・米", unit: "袋", yomi: "やきそばめん", tip: "" },
+  { name: "中華麺", category: "麺類・米", unit: "袋", yomi: "ちゅうかめん", tip: "" },
+  { name: "パスタ", category: "麺類・米", unit: "袋", tip: "" },
+  { name: "ご飯パック", category: "麺類・米", unit: "パック", yomi: "ごはんぱっく", tip: "" },
+  { name: "餃子の皮", category: "麺類・米", unit: "袋", yomi: "ぎょうざのかわ", tip: "" },
+  { name: "米", category: "麺類・米", unit: "袋", yomi: "こめ", tip: "" },
 
-  /* ---------------- 乳製品 ---------------- */
-  { name: "牛乳", category: "乳製品", unit: "本", yomi: "ぎゅうにゅう", amounts: ["1本", "2本"], tip: "賞味期限を確認（棚の奥ほど新しい）" },
-  { name: "ヨーグルト", category: "乳製品", unit: "個", amounts: ["1個", "2個"], tip: "賞味期限を確認" },
-  { name: "スライスチーズ", category: "乳製品", unit: "袋", tip: "" },
-  { name: "ピザ用チーズ", category: "乳製品", unit: "袋", yomi: "ぴざようちーず", tip: "" },
-  { name: "バター", category: "乳製品", unit: "箱", tip: "" },
-  { name: "生クリーム", category: "乳製品", unit: "パック", yomi: "なまくりーむ", tip: "" },
-  { name: "豆乳", category: "乳製品", unit: "本", yomi: "とうにゅう", tip: "" },
+  /* ---------------- 卵・乳製品 ---------------- */
+  { name: "卵", category: "卵・乳製品", unit: "パック", yomi: "たまご", amounts: ["1パック", "2パック"], tip: "ひび割れがないか、パックを開けて確認" },
+  { name: "牛乳", category: "卵・乳製品", unit: "本", yomi: "ぎゅうにゅう", amounts: ["1本", "2本"], tip: "賞味期限を確認（棚の奥ほど新しい）" },
+  { name: "ヨーグルト", category: "卵・乳製品", unit: "個", amounts: ["1個", "2個"], tip: "賞味期限を確認" },
+  { name: "スライスチーズ", category: "卵・乳製品", unit: "袋", tip: "" },
+  { name: "ピザ用チーズ", category: "卵・乳製品", unit: "袋", yomi: "ぴざようちーず", tip: "" },
+  { name: "バター", category: "卵・乳製品", unit: "箱", tip: "" },
+  { name: "生クリーム", category: "卵・乳製品", unit: "パック", yomi: "なまくりーむ", tip: "" },
+  { name: "豆乳", category: "卵・乳製品", unit: "本", yomi: "とうにゅう", tip: "" },
 
   /* ---------------- 飲み物 ---------------- */
   { name: "お茶", category: "飲み物", unit: "本", yomi: "おちゃ", tip: "" },
