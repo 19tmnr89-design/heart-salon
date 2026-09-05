@@ -2,7 +2,7 @@
 // データそのものは Firestore のオフライン永続化（IndexedDB）が担当するので、
 // ここでは「アプリの見た目と実行コード」だけをキャッシュする。
 
-const CACHE = "shopping-v3";
+const CACHE = "shopping-v4";
 
 // 自分たちのファイル（インストール時にまとめて取得）
 const APP_SHELL = [
