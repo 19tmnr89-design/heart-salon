@@ -12,9 +12,8 @@
   --tip-bg: #fff8e1;
   --tip-text: #7a5c00;
   --radius: 12px;
-  --header-h: 56px;
-  --tabs-h: 68px;
   --shadow: 0 1px 3px rgba(0, 0, 0, .07);
+  --header-h: 52px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -49,26 +48,35 @@ body {
 button, input, select, textarea { font: inherit; color: inherit; }
 h1, h2, h3 { margin: 0; }
 
-/* ---------- ヘッダー ---------- */
+/* ---------- ヘッダー（モード切替を内蔵して高さを詰めている） ---------- */
 
 .app-header {
   position: sticky; top: 0; z-index: 30;
   display: flex; align-items: center; gap: 8px;
-  padding: 10px 12px calc(10px + env(safe-area-inset-top)) 12px;
-  padding-top: calc(10px + env(safe-area-inset-top));
-  background: var(--accent); color: #fff;
+  padding: 6px 10px;
+  padding-top: calc(6px + env(safe-area-inset-top));
+  background: var(--accent);
 }
-.app-title { font-size: 17px; font-weight: 700; flex: 1; }
+.mode-switch {
+  flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 3px;
+  background: rgba(0, 0, 0, .16); border-radius: 999px; padding: 3px;
+}
+.mode-tab {
+  padding: 7px 4px; border: 0; background: transparent;
+  color: rgba(255, 255, 255, .85); border-radius: 999px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.mode-tab.is-active { background: #fff; color: var(--accent); font-weight: 700; }
 .icon-btn {
-  background: rgba(255, 255, 255, .18); border: 0; color: #fff;
-  width: 40px; height: 40px; border-radius: 10px; font-size: 19px; cursor: pointer;
+  flex: none; background: rgba(0, 0, 0, .16); border: 0; color: #fff;
+  width: 38px; height: 38px; border-radius: 10px; font-size: 18px; cursor: pointer;
 }
 
+/* 正常時は非表示。異常時だけ出る */
 .sync-status {
   padding: 6px 12px; font-size: 12px; text-align: center;
   background: var(--panel); color: var(--sub); border-bottom: 1px solid var(--line);
 }
-.sync-status.is-ok { color: var(--accent); }
 .sync-status.is-off { background: #fff3cd; color: #6b5200; }
 .sync-status.is-err { background: #fdecea; color: var(--danger); }
 @media (prefers-color-scheme: dark) {
@@ -76,22 +84,9 @@ h1, h2, h3 { margin: 0; }
   .sync-status.is-err { background: #3a2320; color: #f0a79c; }
 }
 
-/* ---------- モードタブ ---------- */
-
-.mode-tabs {
-  position: sticky; top: var(--header-h); z-index: 25;
-  display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
-  padding: 8px 12px; background: var(--bg);
-}
-.mode-tab {
-  padding: 12px 8px; border: 1px solid var(--line); background: var(--panel);
-  color: var(--sub); border-radius: 999px; font-size: 15px; font-weight: 600; cursor: pointer;
-}
-.mode-tab.is-active { background: var(--accent); border-color: var(--accent); color: #fff; }
-
 /* ---------- 共通パーツ ---------- */
 
-main { padding: 4px 12px 0; }
+main { padding: 10px 12px 0; }
 
 .panel {
   background: var(--panel); border: 1px solid var(--line);
@@ -133,22 +128,21 @@ main { padding: 4px 12px 0; }
 
 .item-list { list-style: none; margin: 0; padding: 0; }
 .item-row {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; flex-direction: column; gap: 7px;
   padding: 10px 0; border-bottom: 1px solid var(--line);
 }
 .item-row:last-child { border-bottom: 0; }
 .item-row.is-checked .item-name { color: var(--sub); text-decoration: line-through; }
 
+.item-top { display: flex; align-items: center; gap: 8px; }
 .item-main {
-  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px;
   background: none; border: 0; padding: 0; text-align: left; cursor: pointer;
 }
 .item-name { font-size: 16px; font-weight: 600; }
-.item-meta { font-size: 11px; color: var(--sub); }
 .item-tip {
   font-size: 12px; color: var(--tip-text); background: var(--tip-bg);
-  border-radius: 6px; padding: 3px 6px; margin-top: 3px;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  border-radius: 6px; padding: 3px 6px; line-height: 1.45;
 }
 
 .qty-ctl { display: flex; align-items: center; gap: 4px; flex: none; }
@@ -163,6 +157,16 @@ main { padding: 4px 12px 0; }
 }
 .qty-val b { font-size: 16px; font-weight: 700; }
 .qty-val small { font-size: 11px; color: var(--sub); }
+
+/* 数量が選択式の品目（キャベツ・ダイコンなど） */
+.amount-row, .amount-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.amt {
+  min-height: 38px; padding: 8px 12px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--text);
+  font-size: 13px; cursor: pointer;
+}
+.amt.is-on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+.amt-other { border-style: dashed; }
 
 /* ---------- マスターのチップ ---------- */
 
@@ -194,59 +198,58 @@ main { padding: 4px 12px 0; }
   padding: 11px; border: 1px solid var(--line); border-radius: 10px;
   background: var(--bg); color: var(--text); width: 100%;
 }
-.fa-row { display: grid; grid-template-columns: 80px 90px 1fr; gap: 8px; }
+.fa-row { display: grid; grid-template-columns: 74px 1fr 1fr; gap: 8px; }
 .fa-check { font-size: 13px; color: var(--sub); display: flex; align-items: center; gap: 6px; }
 
 /* ---------- 買い物モード ---------- */
+/* 固定表示せずスクロールで流すことで、画面に映る品目数を増やしている */
 
 .progress-wrap {
-  position: sticky; top: calc(var(--header-h) + var(--tabs-h)); z-index: 20;
   background: var(--panel); border: 1px solid var(--line);
-  border-radius: var(--radius); padding: 10px 12px; margin-bottom: 12px;
+  border-radius: var(--radius); padding: 8px 12px; margin-bottom: 10px;
   box-shadow: var(--shadow);
 }
-.progress-label { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
-.progress-bar { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; }
+.progress-label { font-size: 13px; font-weight: 700; margin-bottom: 5px; }
+.progress-bar { height: 7px; background: var(--line); border-radius: 999px; overflow: hidden; }
 .progress-fill { height: 100%; width: 0; background: var(--accent); border-radius: 999px; transition: width .3s ease; }
 
-.shop-group { margin-bottom: 14px; }
+.shop-group { margin-bottom: 12px; }
 .shop-cat {
   font-size: 12px; font-weight: 700; color: var(--accent);
-  letter-spacing: .04em; padding: 0 2px 6px;
+  letter-spacing: .04em; padding: 0 2px 5px;
 }
 
 .shop-item {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 9px;
   background: var(--panel); border: 1px solid var(--line);
   border-radius: var(--radius); box-shadow: var(--shadow);
-  padding: 12px; margin-bottom: 8px;
+  padding: 10px; margin-bottom: 7px;
   animation: slide-in .18s ease;
 }
 @keyframes slide-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 
 .si-body { flex: 1; min-width: 0; }
-.si-line { display: flex; align-items: baseline; gap: 10px; }
-.si-name { font-size: 19px; font-weight: 700; }
-.si-qty { font-size: 17px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+.si-line { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.si-name { font-size: 18px; font-weight: 700; }
+.si-qty { font-size: 16px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+/* コツは省略せず全文を出す（買いながら片手で読めるように） */
 .si-tip {
-  display: block; width: 100%; margin-top: 6px; padding: 6px 8px;
-  background: var(--tip-bg); color: var(--tip-text); border: 0;
-  border-radius: 8px; font-size: 13px; line-height: 1.45; text-align: left; cursor: pointer;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  margin-top: 5px; padding: 5px 7px;
+  background: var(--tip-bg); color: var(--tip-text);
+  border-radius: 8px; font-size: 12.5px; line-height: 1.45;
 }
-.si-tip.is-open { white-space: normal; }
 .si-by { font-size: 11px; color: var(--sub); }
 
 .si-check {
-  flex: none; width: 56px; height: 56px; border-radius: 14px;
+  flex: none; width: 44px; height: 44px; border-radius: 12px;
   border: 2px solid var(--accent); background: var(--panel); color: var(--accent);
-  font-size: 26px; font-weight: 700; cursor: pointer;
+  font-size: 21px; font-weight: 700; cursor: pointer;
 }
 .si-check:active { background: var(--accent); color: #fff; }
 
-.shop-item.is-done { opacity: .6; padding: 9px 12px; }
-.shop-item.is-done .si-name { text-decoration: line-through; font-size: 16px; font-weight: 600; }
-.shop-item.is-done .si-qty { font-size: 14px; color: var(--sub); }
+.shop-item.is-done { opacity: .6; padding: 8px 10px; }
+.shop-item.is-done .si-name { text-decoration: line-through; font-size: 15px; font-weight: 600; }
+.shop-item.is-done .si-qty { font-size: 13px; color: var(--sub); }
 .si-undo {
   flex: none; padding: 8px 12px; border-radius: 8px;
   border: 1px solid var(--line); background: var(--panel); color: var(--sub);
@@ -297,11 +300,14 @@ main { padding: 4px 12px 0; }
   border-radius: 10px; background: var(--bg); color: var(--text);
 }
 .field textarea { resize: vertical; }
+#mi-unit-other { margin-top: 8px; }
 
-.qty-editor { display: grid; grid-template-columns: 48px 1fr 48px 84px; gap: 6px; align-items: center; }
+.qty-editor { display: grid; grid-template-columns: 48px 1fr 48px 96px; gap: 6px; align-items: center; }
 .qty-editor .qty-btn { width: 100%; height: 44px; }
 .qty-input { text-align: center; }
-.qty-editor input { padding: 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.qty-editor input, .qty-editor select {
+  padding: 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg);
+}
 
 .modal-actions { display: flex; align-items: center; gap: 8px; margin-top: 18px; }
 .modal-actions .spacer { flex: 1; }

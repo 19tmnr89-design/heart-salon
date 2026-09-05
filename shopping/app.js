@@ -29,6 +29,7 @@ const ROOM_KEY = "shopping-room-id";
 const WHO_KEY  = "shopping-who";
 const MODE_KEY = "shopping-mode";
 const ROOT     = "shopping_lists";
+const UNIT_OTHER = "__other__";
 
 const $  = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -63,7 +64,7 @@ const who = () => localStorage.getItem(WHO_KEY) || "";
 //  - ひらがなをカタカナに寄せる（「ねぎ」で「青ネギ」が出るように）
 function normKana(s) {
   return String(s ?? "").normalize("NFKC").toLowerCase()
-    .replace(/[\u3041-\u3096]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60));
+    .replace(/[ぁ-ゖ]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60));
 }
 
 function toast(msg) {
@@ -112,6 +113,8 @@ let histDocs = [];     // 履歴（新しい順）
 let openCats = new Set(["野菜"]);   // 開いているカテゴリ
 let searchWord = "";
 let editingId = null;  // 編集モーダルで開いている品目
+let modalAmounts = null;  // 編集モーダルの選択肢
+let modalAmount = null;   // 編集モーダルで選ばれている数量（選択式のとき）
 let undoAction = null;
 let undoTimer = null;
 let netCached = true, netPending = false;
@@ -123,14 +126,17 @@ function effectiveMaster() {
   for (const p of MASTER_PRESET) {
     map.set(p.name, {
       name: p.name, category: p.category, unit: p.unit || "個",
-      yomi: p.yomi || "", tip: p.tip || "", isCustom: false, hidden: false, useCount: 0
+      yomi: p.yomi || "", tip: p.tip || "",
+      amounts: p.amounts || null, defaultAmount: p.defaultAmount || null,
+      isCustom: false, hidden: false, useCount: 0
     });
   }
   for (const m of metaDocs) {
     if (!m.name) continue;
     const base = map.get(m.name) || {
       name: m.name, category: "その他", unit: "個",
-      yomi: "", tip: "", isCustom: true, hidden: false, useCount: 0
+      yomi: "", tip: "", amounts: null, defaultAmount: null,
+      isCustom: true, hidden: false, useCount: 0
     };
     map.set(m.name, {
       name: m.name,
@@ -138,6 +144,8 @@ function effectiveMaster() {
       unit: m.unit ?? base.unit,
       yomi: base.yomi,
       tip: m.tip ?? base.tip,
+      amounts: base.amounts,
+      defaultAmount: base.defaultAmount,
       isCustom: m.isCustom ?? base.isCustom,
       hidden: m.hidden ?? base.hidden,
       useCount: m.useCount ?? base.useCount
@@ -151,7 +159,8 @@ const sortItems = (arr) => arr.slice().sort((a, b) =>
   (a.order || 0) - (b.order || 0) ||
   String(a.name).localeCompare(String(b.name), "ja"));
 
-const qtyLabel = (it) => `${it.quantity ?? 1}${it.unit || "個"}`;
+// 選択式の品目は amount（「1/4玉」など）、それ以外は 数値+単位 を表示する
+const amountLabel = (it) => it.amount || `${it.quantity ?? 1}${it.unit || "個"}`;
 
 /* ==================== 書き込み ==================== */
 
@@ -170,13 +179,18 @@ async function touchRoom() {
   } catch { /* 失敗しても本体の動作には影響しない */ }
 }
 
-async function addItem({ name, category, quantity, unit, tip }) {
-  await setDoc(doc(itemsCol, randomId(16)), {
+function newItemData({ name, category, quantity, unit, tip, amount, amounts }, order) {
+  return {
     name, category: category || "その他",
     quantity: Number(quantity) || 1, unit: unit || "個",
+    amount: amount || null, amounts: amounts || null,
     tip: tip || "", isChecked: false,
-    order: Date.now(), addedBy: who(), createdAt: Date.now()
-  });
+    order: order ?? Date.now(), addedBy: who(), createdAt: Date.now()
+  };
+}
+
+async function addItem(data) {
+  await setDoc(doc(itemsCol, randomId(16)), newItemData(data));
   touchRoom();
 }
 
@@ -198,7 +212,11 @@ async function toggleMaster(m) {
   if (found) {
     await removeItem(found.id);
   } else {
-    await addItem({ name: m.name, category: m.category, quantity: 1, unit: m.unit, tip: m.tip });
+    await addItem({
+      name: m.name, category: m.category, quantity: 1, unit: m.unit, tip: m.tip,
+      amounts: m.amounts,
+      amount: m.amounts ? (m.defaultAmount || m.amounts[0]) : null
+    });
   }
 }
 
@@ -229,7 +247,8 @@ async function completeShopping() {
 
   const snapshot = items.map((i) => ({
     name: i.name, category: i.category,
-    quantity: i.quantity ?? 1, unit: i.unit || "個", tip: i.tip || ""
+    quantity: i.quantity ?? 1, unit: i.unit || "個",
+    amount: i.amount || null, amounts: i.amounts || null, tip: i.tip || ""
   }));
   const master = new Map(effectiveMaster().map((m) => [m.name, m]));
   const names = Array.from(new Set(items.map((i) => i.name)));
@@ -254,12 +273,8 @@ async function restoreLast() {
   if (!add.length) { toast("前回の品目はすべてリストに入っています"); return; }
 
   const base = Date.now();
-  await commitOps(add.map((it, idx) => (b) => b.set(doc(itemsCol, randomId(16)), {
-    name: it.name, category: it.category || "その他",
-    quantity: Number(it.quantity) || 1, unit: it.unit || "個",
-    tip: it.tip || "", isChecked: false,
-    order: base + idx, addedBy: who(), createdAt: Date.now()
-  })));
+  await commitOps(add.map((it, idx) => (b) =>
+    b.set(doc(itemsCol, randomId(16)), newItemData(it, base + idx))));
   toast(`前回のリストから${add.length}品を復元しました`);
 }
 
@@ -291,9 +306,17 @@ function hideUndo() {
 
 /* ==================== 描画 ==================== */
 
+// 食材をタップするとリストが上に伸びて、見ている場所がずれてしまう。
+// 描画の前後で食材パネルの位置を測り、ずれた分だけスクロールを戻す。
 function render() {
+  const anchor = $("#master-panel");
+  const before = anchor.getBoundingClientRect().top;
   renderEdit();
   renderShop();
+  if (!$("#view-edit").hidden) {
+    const diff = anchor.getBoundingClientRect().top - before;
+    if (Math.abs(diff) > 0.5) window.scrollBy(0, diff);
+  }
 }
 
 /* ---- 画面A: リスト作成 ---- */
@@ -305,19 +328,25 @@ function renderEdit() {
   $("#btn-restore-last").hidden = histDocs.length === 0;
 
   $("#current-list").innerHTML = list.map((it) => {
-    const meta = [it.category, it.addedBy ? `${esc(it.addedBy)}が追加` : ""].filter(Boolean).join(" ・ ");
+    const opts = Array.isArray(it.amounts) && it.amounts.length ? it.amounts : null;
+    const current = amountLabel(it);
     return `
-      <li class="item-row${it.isChecked ? " is-checked" : ""}" data-id="${esc(it.id)}">
-        <button class="item-main" data-act="edit" type="button">
-          <span class="item-name">${esc(it.name)}${it.isChecked ? " <span class='mini-tag'>カゴ済</span>" : ""}</span>
-          <span class="item-meta">${esc(meta)}</span>
-          ${it.tip ? `<span class="item-tip">💡 ${esc(it.tip)}</span>` : ""}
-        </button>
-        <div class="qty-ctl">
-          <button class="qty-btn" data-act="minus" type="button" aria-label="減らす">−</button>
-          <span class="qty-val"><b>${esc(it.quantity ?? 1)}</b><small>${esc(it.unit || "個")}</small></span>
-          <button class="qty-btn" data-act="plus" type="button" aria-label="増やす">＋</button>
+      <li class="item-row${opts ? " has-amounts" : ""}${it.isChecked ? " is-checked" : ""}" data-id="${esc(it.id)}">
+        <div class="item-top">
+          <button class="item-main" data-act="edit" type="button">
+            <span class="item-name">${esc(it.name)}${it.isChecked ? " <span class='mini-tag'>カゴ済</span>" : ""}</span>
+            ${it.tip ? `<span class="item-tip">💡 ${esc(it.tip)}</span>` : ""}
+          </button>
+          ${it.amount ? "" : `
+          <div class="qty-ctl">
+            <button class="qty-btn" data-act="minus" type="button" aria-label="減らす">−</button>
+            <span class="qty-val"><b>${esc(it.quantity ?? 1)}</b><small>${esc(it.unit || "個")}</small></span>
+            <button class="qty-btn" data-act="plus" type="button" aria-label="増やす">＋</button>
+          </div>`}
         </div>
+        ${opts ? `<div class="amount-row">${opts.map((a) =>
+          `<button type="button" class="amt${a === current ? " is-on" : ""}" data-act="amount" data-amt="${esc(a)}">${esc(a)}</button>`
+        ).join("")}</div>` : ""}
       </li>`;
   }).join("");
 
@@ -403,9 +432,9 @@ function shopRowHtml(it) {
       <div class="si-body">
         <div class="si-line">
           <span class="si-name">${esc(it.name)}</span>
-          <span class="si-qty">${esc(qtyLabel(it))}</span>
+          <span class="si-qty">${esc(amountLabel(it))}</span>
         </div>
-        ${it.tip ? `<button class="si-tip" data-act="tip" type="button">💡 ${esc(it.tip)}</button>` : ""}
+        ${it.tip ? `<div class="si-tip">💡 ${esc(it.tip)}</div>` : ""}
       </div>
       <button class="si-check" data-act="check" type="button" aria-label="カゴに入れる">✓</button>
     </div>`;
@@ -417,7 +446,7 @@ function doneRowHtml(it) {
       <div class="si-body">
         <div class="si-line">
           <span class="si-name">${esc(it.name)}</span>
-          <span class="si-qty">${esc(qtyLabel(it))}</span>
+          <span class="si-qty">${esc(amountLabel(it))}</span>
         </div>
         ${it.checkedBy ? `<span class="si-by">${esc(it.checkedBy)}が入れました</span>` : ""}
       </div>
@@ -428,10 +457,7 @@ function doneRowHtml(it) {
 /* ==================== モード切替（端末ごとに保持） ==================== */
 
 function measureSticky() {
-  const h = $(".app-header").offsetHeight;
-  const t = $(".mode-tabs").offsetHeight;
-  document.documentElement.style.setProperty("--header-h", h + "px");
-  document.documentElement.style.setProperty("--tabs-h", t + "px");
+  document.documentElement.style.setProperty("--header-h", $(".app-header").offsetHeight + "px");
 }
 
 function setMode(mode) {
@@ -442,23 +468,61 @@ function setMode(mode) {
   window.scrollTo({ top: 0 });
 }
 
+/* ==================== 単位のプルダウン ==================== */
+
+function unitOptionsHtml(selected) {
+  const known = UNIT_OPTIONS.includes(selected);
+  return UNIT_OPTIONS.map((u) =>
+    `<option value="${esc(u)}"${known && u === selected ? " selected" : ""}>${esc(u)}</option>`
+  ).join("") +
+    `<option value="${UNIT_OTHER}"${!known && selected ? " selected" : ""}>その他（入力）</option>`;
+}
+
+// select が「その他」なら自由入力欄の値を使う
+function readUnit(select, other) {
+  const v = select.value === UNIT_OTHER ? other.value.trim() : select.value;
+  return v || "個";
+}
+function syncUnitOther(select, other) {
+  other.hidden = select.value !== UNIT_OTHER;
+  if (!other.hidden) other.focus();
+}
+
 /* ==================== 品目編集モーダル ==================== */
+
+function renderModalAmounts() {
+  if (!modalAmounts) return;
+  $("#mi-amounts").innerHTML = modalAmounts.map((a) =>
+    `<button type="button" class="amt${a === modalAmount ? " is-on" : ""}" data-amt="${esc(a)}">${esc(a)}</button>`
+  ).join("") +
+    `<button type="button" class="amt amt-other${modalAmount === null ? " is-on" : ""}" data-amt="${UNIT_OTHER}">その他</button>`;
+  $("#mi-qty-field").hidden = modalAmount !== null;
+}
 
 function openItemModal(id) {
   const it = items.find((i) => i.id === id);
   if (!it) return;
   editingId = id;
-  $("#mi-title").textContent = "品目の編集";
   $("#mi-name").value = it.name || "";
   $("#mi-qty").value = it.quantity ?? 1;
-  $("#mi-unit").value = it.unit || "個";
+  $("#mi-unit").innerHTML = unitOptionsHtml(it.unit || "個");
+  $("#mi-unit-other").value = UNIT_OPTIONS.includes(it.unit || "個") ? "" : (it.unit || "");
+  syncUnitOther($("#mi-unit"), $("#mi-unit-other"));
   $("#mi-category").value = CATEGORY_ORDER.includes(it.category) ? it.category : "その他";
   $("#mi-tip").value = it.tip || "";
+
+  modalAmounts = Array.isArray(it.amounts) && it.amounts.length ? it.amounts : null;
+  modalAmount = modalAmounts ? (it.amount || null) : null;
+  $("#mi-amount-field").hidden = !modalAmounts;
+  if (modalAmounts) renderModalAmounts(); else $("#mi-qty-field").hidden = false;
+
   $("#modal-item").hidden = false;
 }
 
 function closeItemModal() {
   editingId = null;
+  modalAmounts = null;
+  modalAmount = null;
   $("#modal-item").hidden = true;
 }
 
@@ -470,10 +534,11 @@ async function saveItemModal() {
 
   const name = $("#mi-name").value.trim();
   if (!name) { toast("品名を入力してください"); return; }
+  const unit = readUnit($("#mi-unit"), $("#mi-unit-other"));
   const patch = {
-    name,
+    name, unit,
     quantity: Math.min(999, Math.max(1, parseInt($("#mi-qty").value, 10) || 1)),
-    unit: $("#mi-unit").value.trim() || "個",
+    amount: modalAmount,
     category: $("#mi-category").value,
     tip: $("#mi-tip").value.trim()
   };
@@ -481,11 +546,11 @@ async function saveItemModal() {
 
   // コツ・カテゴリ・単位の変更は次回以降のマスターにも反映する
   const known = effectiveMaster().some((m) => m.name === name);
-  const changed = before.tip !== patch.tip || before.unit !== patch.unit ||
+  const changed = before.tip !== patch.tip || before.unit !== unit ||
     before.category !== patch.category || before.name !== name;
   if (changed) {
     await saveMeta(name, {
-      tip: patch.tip, unit: patch.unit, category: patch.category,
+      tip: patch.tip, unit, category: patch.category,
       ...(known ? {} : { isCustom: true })
     });
   }
@@ -523,18 +588,21 @@ async function copyShareUrl() {
 
 /* ==================== 同期ステータス ==================== */
 
+// 正常なときは表示しない（画面の面積を品目に使うため）
 function updateSyncStatus() {
   const el = $("#sync-status");
   if (!navigator.onLine || netCached) {
     el.textContent = "📴 オフライン中（変更は端末に保存され、電波が戻ると自動送信されます）";
     el.className = "sync-status is-off";
+    el.hidden = false;
   } else if (netPending) {
     el.textContent = "⏳ 送信中…";
     el.className = "sync-status is-pending";
+    el.hidden = false;
   } else {
-    el.textContent = "✅ 同期中";
-    el.className = "sync-status is-ok";
+    el.hidden = true;
   }
+  measureSticky();
 }
 
 /* ==================== 初期化 ==================== */
@@ -542,10 +610,10 @@ function updateSyncStatus() {
 function fillSelects() {
   const opts = CATEGORY_ORDER.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
   $("#mi-category").innerHTML = opts;
-  const fa = document.querySelector("#free-add select[name=category]");
-  fa.innerHTML = opts;
-  fa.value = "その他";
-  $("#unit-list").innerHTML = UNIT_OPTIONS.map((u) => `<option value="${esc(u)}">`).join("");
+  const fa = $("#free-add");
+  fa.category.innerHTML = opts;
+  fa.category.value = "その他";
+  fa.unit.innerHTML = unitOptionsHtml("個");
 }
 
 function bindEvents() {
@@ -562,6 +630,7 @@ function bindEvents() {
     if (btn.dataset.act === "edit") openItemModal(it.id);
     if (btn.dataset.act === "plus") changeQty(it, +1);
     if (btn.dataset.act === "minus") changeQty(it, -1);
+    if (btn.dataset.act === "amount") updateItem(it.id, { amount: btn.dataset.amt });
   });
 
   // マスターのチップ
@@ -591,27 +660,26 @@ function bindEvents() {
   });
 
   // 自由入力の追加
-  $("#free-add").addEventListener("submit", async (e) => {
+  const fa = $("#free-add");
+  fa.unit.addEventListener("change", () => syncUnitOther(fa.unit, fa.unitOther));
+  fa.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const f = e.target;
-    const name = f.name.value.trim();
+    const name = fa.name.value.trim();
     if (!name) return;
-    const category = f.category.value;
-    const unit = f.unit.value.trim() || "個";
-    const tip = f.tip.value.trim();
-    const quantity = Math.min(999, Math.max(1, parseInt(f.qty.value, 10) || 1));
+    const category = fa.category.value;
+    const unit = readUnit(fa.unit, fa.unitOther);
+    const tip = fa.tip.value.trim();
+    const quantity = Math.min(999, Math.max(1, parseInt(fa.qty.value, 10) || 1));
 
     await addItem({ name, category, quantity, unit, tip });
-    if (f.toMaster.checked) {
+    if (fa.toMaster.checked) {
       const known = effectiveMaster().some((m) => m.name === name);
       await saveMeta(name, { category, unit, tip, ...(known ? {} : { isCustom: true }) });
     }
-    f.reset();
-    f.qty.value = 1;
-    f.unit.value = "個";
-    f.category.value = category;
-    f.toMaster.checked = true;
-    f.name.focus();
+    fa.name.value = "";
+    fa.tip.value = "";
+    fa.qty.value = 1;
+    fa.name.focus();
     toast(`「${name}」を追加しました`);
   });
 
@@ -619,12 +687,11 @@ function bindEvents() {
 
   // 買い物モード
   $("#shop-todo").addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-act]");
+    const btn = e.target.closest("[data-act=check]");
     const row = e.target.closest(".shop-item");
     if (!btn || !row) return;
-    if (btn.dataset.act === "tip") { btn.classList.toggle("is-open"); return; }
     const it = items.find((i) => i.id === row.dataset.id);
-    if (it && btn.dataset.act === "check") setChecked(it, true);
+    if (it) setChecked(it, true);
   });
   $("#shop-done").addEventListener("click", (e) => {
     const btn = e.target.closest("[data-act=uncheck]");
@@ -646,6 +713,13 @@ function bindEvents() {
   });
 
   // 品目編集モーダル
+  $("#mi-amounts").addEventListener("click", (e) => {
+    const b = e.target.closest(".amt");
+    if (!b) return;
+    modalAmount = b.dataset.amt === UNIT_OTHER ? null : b.dataset.amt;
+    renderModalAmounts();
+  });
+  $("#mi-unit").addEventListener("change", () => syncUnitOther($("#mi-unit"), $("#mi-unit-other")));
   $("#mi-plus").addEventListener("click", () => {
     $("#mi-qty").value = Math.min(999, (parseInt($("#mi-qty").value, 10) || 1) + 1);
   });
@@ -682,12 +756,14 @@ function bindEvents() {
 
   // モーダルの背景タップで閉じる
   $$(".modal").forEach((m) => m.addEventListener("click", (e) => {
-    if (e.target.dataset.close) m.hidden = true;
-    if (m.id === "modal-item" && e.target.dataset.close) editingId = null;
+    if (!e.target.dataset.close) return;
+    if (m.id === "modal-item") closeItemModal();
+    else m.hidden = true;
   }));
 
   addEventListener("online", updateSyncStatus);
   addEventListener("offline", updateSyncStatus);
+  addEventListener("resize", measureSticky);
 }
 
 function subscribe() {
@@ -698,8 +774,10 @@ function subscribe() {
     updateSyncStatus();
     render();
   }, (err) => {
-    $("#sync-status").textContent = "⚠️ 同期エラー: " + (err.code || err.message);
-    $("#sync-status").className = "sync-status is-err";
+    const el = $("#sync-status");
+    el.textContent = "⚠️ 同期エラー: " + (err.code || err.message);
+    el.className = "sync-status is-err";
+    el.hidden = false;
   });
 
   onSnapshot(metaCol, (snap) => {
@@ -719,9 +797,7 @@ async function main() {
   bindEvents();
   setMode(localStorage.getItem(MODE_KEY) || "edit");
   measureSticky();
-  addEventListener("resize", measureSticky);
   render();
-  updateSyncStatus();
 
   try {
     await signInAnonymously(auth);
