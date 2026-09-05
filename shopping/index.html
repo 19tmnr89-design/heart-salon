@@ -16,17 +16,17 @@
 </head>
 <body>
 
+<!-- ヘッダーにモード切替をまとめて、画面に映る品目数を増やしている -->
 <header class="app-header">
-  <h1 class="app-title">🛒 買い物リスト</h1>
+  <div class="mode-switch" role="tablist">
+    <button class="mode-tab is-active" data-mode="edit" role="tab">📋 リスト作成</button>
+    <button class="mode-tab" data-mode="shop" role="tab">🛒 買い物</button>
+  </div>
   <button id="btn-settings" class="icon-btn" title="設定">⚙️</button>
 </header>
 
-<div id="sync-status" class="sync-status">接続中…</div>
-
-<nav class="mode-tabs" role="tablist">
-  <button class="mode-tab is-active" data-mode="edit" role="tab">📋 リスト作成</button>
-  <button class="mode-tab" data-mode="shop" role="tab">🛒 買い物</button>
-</nav>
+<!-- 正常に同期できているときは表示しない（場所を取らないため） -->
+<div id="sync-status" class="sync-status" hidden></div>
 
 <main>
   <!-- ============ 画面A: リスト作成 ============ -->
@@ -41,9 +41,9 @@
       <p id="current-empty" class="empty-note">下の食材をタップして追加してください。</p>
     </section>
 
-    <section class="panel">
-      <div class="panel-head"><h2>食材を追加</h2></div>
-      <input id="master-search" class="search-box" type="search" placeholder="品名で検索（例: オクラ）" autocomplete="off">
+    <section class="panel" id="master-panel">
+      <div class="panel-head"><h2>追加する食材を検索</h2></div>
+      <input id="master-search" class="search-box" type="search" placeholder="品名で検索（例: オクラ、とうふ）" autocomplete="off">
 
       <div id="frequent-wrap" class="freq-wrap" hidden>
         <h3 class="sub-head">⭐ よく買うもの</h3>
@@ -60,9 +60,10 @@
         <input name="name" class="fa-name" placeholder="品名（必須）" required maxlength="40">
         <div class="fa-row">
           <input name="qty" class="fa-qty" type="number" inputmode="numeric" min="1" max="999" step="1" value="1" aria-label="数量">
-          <input name="unit" class="fa-unit" list="unit-list" placeholder="単位" value="個" maxlength="6" aria-label="単位">
+          <select name="unit" class="fa-unit" aria-label="単位"></select>
           <select name="category" class="fa-cat" aria-label="カテゴリ"></select>
         </div>
+        <input name="unitOther" class="fa-unit-other" placeholder="単位を入力" maxlength="6" hidden aria-label="単位（自由入力）">
         <input name="tip" class="fa-tip" placeholder="選び方のコツ（任意）" maxlength="120">
         <label class="fa-check"><input type="checkbox" name="toMaster" checked> 次回から候補リストにも出す</label>
         <button type="submit" class="btn-primary">リストに追加</button>
@@ -73,6 +74,7 @@
   <!-- ============ 画面B: 買い物モード ============ -->
   <section id="view-shop" class="view" hidden>
 
+    <!-- 進捗バーは固定表示せず、スクロールで流れるようにしている -->
     <div class="progress-wrap">
       <div class="progress-label"><span id="progress-text">0 / 0品 完了</span></div>
       <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
@@ -95,8 +97,6 @@
   </section>
 </main>
 
-<datalist id="unit-list"></datalist>
-
 <!-- 取り消しバー -->
 <div id="undo-bar" class="undo-bar" hidden>
   <span id="undo-text"></span>
@@ -114,14 +114,22 @@
       <input id="mi-name" type="text" maxlength="40">
     </label>
 
-    <div class="field">
+    <!-- 選択式の品目（キャベツ・ダイコンなど） -->
+    <div class="field" id="mi-amount-field" hidden>
+      <span class="field-label">数量</span>
+      <div id="mi-amounts" class="amount-chips"></div>
+    </div>
+
+    <!-- 数値＋単位の品目 -->
+    <div class="field" id="mi-qty-field">
       <span class="field-label">数量</span>
       <div class="qty-editor">
         <button id="mi-minus" class="qty-btn" type="button" aria-label="減らす">−</button>
         <input id="mi-qty" class="qty-input" type="number" inputmode="numeric" min="1" max="999" step="1">
         <button id="mi-plus" class="qty-btn" type="button" aria-label="増やす">＋</button>
-        <input id="mi-unit" class="qty-unit" list="unit-list" maxlength="6" aria-label="単位">
+        <select id="mi-unit" aria-label="単位"></select>
       </div>
+      <input id="mi-unit-other" type="text" maxlength="6" placeholder="単位を入力" hidden>
     </div>
 
     <label class="field">
@@ -157,7 +165,7 @@
         <button type="button" class="who-btn" data-who="夫">夫</button>
         <button type="button" class="who-btn" data-who="その他">その他</button>
       </div>
-      <span class="field-note">「誰が追加／チェックしたか」の表示に使うだけで、権限の違いはありません。</span>
+      <span class="field-note">購入済みリストで「誰が入れたか」を表示するのに使うだけで、権限の違いはありません。</span>
     </div>
 
     <div class="field">
