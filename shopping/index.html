@@ -16,7 +16,7 @@
 </head>
 <body>
 
-<!-- ヘッダーにモード切替をまとめて、画面に映る品目数を増やしている -->
+<!-- モードの行き来はほとんどないので、ヘッダーは固定せずスクロールで流す -->
 <header class="app-header">
   <div class="mode-switch" role="tablist">
     <button class="mode-tab is-active" data-mode="edit" role="tab">📋 リスト作成</button>
@@ -73,12 +73,6 @@
 
   <!-- ============ 画面B: 買い物モード ============ -->
   <section id="view-shop" class="view" hidden>
-
-    <!-- 進捗バーは固定表示せず、スクロールで流れるようにしている -->
-    <div class="progress-wrap">
-      <div class="progress-label"><span id="progress-text">0 / 0品 完了</span></div>
-      <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
-    </div>
 
     <div id="shop-todo" class="shop-todo"></div>
     <p id="shop-empty" class="empty-note" hidden>リストが空です。「📋 リスト作成」から追加してください。</p>

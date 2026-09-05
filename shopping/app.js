@@ -36,7 +36,10 @@ const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
 const CAT_RANK = new Map(CATEGORY_ORDER.map((c, i) => [c, i]));
 // カテゴリ統合前に登録された品目を、統合後の売り場に読み替える
-const CAT_ALIAS = { "大豆製品": "大豆製品・加工品", "加工品": "大豆製品・加工品" };
+const CAT_ALIAS = {
+  "大豆製品": "大豆製品・加工品", "加工品": "大豆製品・加工品",
+  "日配": "麺類・米", "乳製品": "卵・乳製品"
+};
 const canonCat = (c) => CAT_ALIAS[c] || c || "その他";
 const catRank = (c) => {
   const k = canonCat(c);
@@ -348,7 +351,11 @@ function renderEdit() {
             ${opts ? opts.map((a) =>
               `<button type="button" class="amt${a === current ? " is-on" : ""}" data-act="amount" data-amt="${esc(a)}">${esc(a)}</button>`
             ).join("") : ""}
-            ${it.amount ? "" : `
+            ${opts && !opts.includes(current)
+              // 「その他」で入れた数量も、選択中のチップとして同じ見た目で並べる（押すと編集）
+              ? `<button type="button" class="amt is-on" data-act="edit">${esc(current)}</button>`
+              : ""}
+            ${opts ? "" : `
             <div class="qty-ctl">
               <button class="qty-btn" data-act="minus" type="button" aria-label="減らす">−</button>
               <span class="qty-val"><b>${esc(it.quantity ?? 1)}</b><small>${esc(it.unit || "個")}</small></span>
@@ -413,10 +420,6 @@ function renderShop() {
   const done = list.filter((i) => i.isChecked);
 
   const total = list.length;
-  const pct = total ? Math.round((done.length / total) * 100) : 0;
-  $("#progress-text").textContent = total ? `${done.length} / ${total}品 完了` : "リストは空です";
-  $("#progress-fill").style.width = pct + "%";
-
   $("#shop-empty").hidden = total > 0;
   $("#shop-alldone").hidden = !(total > 0 && todo.length === 0);
 
@@ -439,39 +442,30 @@ function renderShop() {
   $("#shop-done").innerHTML = done.map(doneRowHtml).join("");
 }
 
+// チェックボタンは置かず、行全体をタップしてカゴ入れする（押し間違いは取り消しバーで戻せる）
 function shopRowHtml(it) {
   return `
-    <div class="shop-item" data-id="${esc(it.id)}">
-      <div class="si-body">
-        <div class="si-line">
-          <span class="si-name">${esc(it.name)}</span>
-          <span class="si-qty">${esc(amountLabel(it))}</span>
-        </div>
-        ${it.tip ? `<div class="si-tip">💡 ${esc(it.tip)}</div>` : ""}
-      </div>
-      <button class="si-check" data-act="check" type="button" aria-label="カゴに入れる">✓</button>
-    </div>`;
+    <button class="shop-item" type="button" data-id="${esc(it.id)}">
+      <span class="si-line">
+        <span class="si-name">${esc(it.name)}</span>
+        <span class="si-qty">${esc(amountLabel(it))}</span>
+      </span>
+      ${it.tip ? `<span class="si-tip">💡 ${esc(it.tip)}</span>` : ""}
+    </button>`;
 }
 
 function doneRowHtml(it) {
   return `
-    <div class="shop-item is-done" data-id="${esc(it.id)}">
-      <div class="si-body">
-        <div class="si-line">
-          <span class="si-name">${esc(it.name)}</span>
-          <span class="si-qty">${esc(amountLabel(it))}</span>
-        </div>
-        ${it.checkedBy ? `<span class="si-by">${esc(it.checkedBy)}が入れました</span>` : ""}
-      </div>
-      <button class="si-undo" data-act="uncheck" type="button">戻す</button>
-    </div>`;
+    <button class="shop-item is-done" type="button" data-id="${esc(it.id)}">
+      <span class="si-line">
+        <span class="si-name">${esc(it.name)}</span>
+        <span class="si-qty">${esc(amountLabel(it))}</span>
+        ${it.checkedBy ? `<span class="si-by">${esc(it.checkedBy)}</span>` : ""}
+      </span>
+    </button>`;
 }
 
 /* ==================== モード切替（端末ごとに保持） ==================== */
-
-function measureSticky() {
-  document.documentElement.style.setProperty("--header-h", $(".app-header").offsetHeight + "px");
-}
 
 function setMode(mode) {
   try { localStorage.setItem(MODE_KEY, mode); } catch { /* noop */ }
@@ -610,10 +604,7 @@ function updateSyncStatus() {
     el.textContent = "📴 オフライン中（変更は端末に保存され、電波が戻ると自動送信されます）";
     el.className = "sync-status is-off";
   }
-  if (el.hidden === show) {
-    el.hidden = !show;
-    measureSticky();
-  }
+  el.hidden = !show;
 }
 
 /* ==================== 初期化 ==================== */
@@ -701,20 +692,14 @@ function bindEvents() {
   $("#btn-restore-last").addEventListener("click", restoreLast);
 
   // 買い物モード
-  $("#shop-todo").addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-act=check]");
+  const onShopRow = (checked) => (e) => {
     const row = e.target.closest(".shop-item");
-    if (!btn || !row) return;
+    if (!row) return;
     const it = items.find((i) => i.id === row.dataset.id);
-    if (it) setChecked(it, true);
-  });
-  $("#shop-done").addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-act=uncheck]");
-    const row = e.target.closest(".shop-item");
-    if (!btn || !row) return;
-    const it = items.find((i) => i.id === row.dataset.id);
-    if (it) setChecked(it, false);
-  });
+    if (it) setChecked(it, checked);
+  };
+  $("#shop-todo").addEventListener("click", onShopRow(true));
+  $("#shop-done").addEventListener("click", onShopRow(false));
 
   $("#btn-complete").addEventListener("click", completeShopping);
   $("#btn-clear-checked").addEventListener("click", () => clearItems(true));
@@ -778,7 +763,6 @@ function bindEvents() {
 
   addEventListener("online", updateSyncStatus);
   addEventListener("offline", updateSyncStatus);
-  addEventListener("resize", measureSticky);
 }
 
 function subscribe() {
@@ -811,7 +795,6 @@ async function main() {
   fillSelects();
   bindEvents();
   setMode(localStorage.getItem(MODE_KEY) || "edit");
-  measureSticky();
   render();
 
   try {
