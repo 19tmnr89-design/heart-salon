@@ -15,7 +15,7 @@
 //     /history/{historyId}   … 買い物完了時のスナップショット
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
   collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, query, orderBy, limit
@@ -38,7 +38,8 @@ const CAT_RANK = new Map(CATEGORY_ORDER.map((c, i) => [c, i]));
 // カテゴリ統合前に登録された品目を、統合後の売り場に読み替える
 const CAT_ALIAS = {
   "大豆製品": "大豆製品・加工品", "加工品": "大豆製品・加工品",
-  "日配": "麺類・米", "乳製品": "卵・乳製品"
+  "日配": "麺類・米・パン", "麺類・米": "麺類・米・パン",
+  "乳製品": "卵・乳製品"
 };
 const canonCat = (c) => CAT_ALIAS[c] || c || "その他";
 const catRank = (c) => {
@@ -105,9 +106,20 @@ const roomId = resolveRoomId();
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
-});
+
+// IndexedDB が使えない環境（プライベートモード、アプリ内ブラウザなど）では
+// 永続化の初期化に失敗する。そこで落とさず、メモリキャッシュに切り替えて動かす。
+let cacheMode = "永続（オフライン対応）";
+let db;
+try {
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+  });
+} catch (e) {
+  console.warn("オフライン永続化を有効にできませんでした:", e);
+  cacheMode = "メモリのみ（" + (e.code || e.message) + "）";
+  db = initializeFirestore(app, {});
+}
 
 const roomRef  = doc(db, ROOT, roomId);
 const itemsCol = collection(roomRef, "items");
@@ -128,6 +140,9 @@ let modalAmount = null;   // 編集モーダルで選ばれている数量（選
 let undoAction = null;
 let undoTimer = null;
 let netCached = true, netPending = false;
+let authState = "未接続";   // 接続状態の表示用
+let syncError = "";
+let unsubs = [];
 
 /* ==================== マスターの合成 ==================== */
 
@@ -567,7 +582,20 @@ async function saveItemModal() {
 
 /* ==================== 設定モーダル ==================== */
 
+function diagnosticsText() {
+  return [
+    "部屋ID: " + roomId,
+    "ログイン: " + authState,
+    "サーバー接続: " + (syncError ? "エラー（" + syncError + "）" : netCached ? "未接続（キャッシュ表示中）" : "接続中"),
+    "未送信の変更: " + (netPending ? "あり" : "なし"),
+    "保存方式: " + cacheMode,
+    "リストの品目数: " + items.length,
+    "ブラウザ: " + navigator.userAgent
+  ].join("\n");
+}
+
 function openSettings() {
+  $("#diag").textContent = diagnosticsText();
   $("#share-url").value = location.origin + location.pathname + "?room=" + roomId;
   $("#room-input").value = roomId;
   $$(".who-btn").forEach((b) => b.classList.toggle("is-on", b.dataset.who === who()));
@@ -597,14 +625,42 @@ async function copyShareUrl() {
 
 // オフラインとエラーのときだけ表示する。
 // 送信中（hasPendingWrites）はタップのたびに一瞬バーが出て画面が動くので出さない。
+// 異常時は画面上端に貼り付いて、スクロールしても見えなくならないようにしている。
 function updateSyncStatus() {
   const el = $("#sync-status");
-  const show = !navigator.onLine || netCached;
-  if (show) {
-    el.textContent = "📴 オフライン中（変更は端末に保存され、電波が戻ると自動送信されます）";
-    el.className = "sync-status is-off";
+  let msg = "", cls = "";
+  if (syncError) {
+    msg = "⚠️ " + syncError;
+    cls = "is-err";
+  } else if (!navigator.onLine || netCached) {
+    msg = "📴 オフライン中（変更は端末に保存され、電波が戻ると自動送信されます）";
+    cls = "is-off";
   }
-  el.hidden = !show;
+  el.textContent = msg;
+  el.className = "sync-status " + cls;
+  el.hidden = !msg;
+}
+
+// 接続に失敗しても諦めず、間隔を空けて匿名ログインを試し直す。
+// 一度も成功しないと Firestore の読み書きが権限エラーになり、相手と同期できない。
+async function ensureAuth() {
+  let retried = false;
+  for (let i = 0; i < 6; i++) {
+    try {
+      await signInAnonymously(auth);
+      authState = "ログイン済み";
+      syncError = "";
+      updateSyncStatus();
+      return retried;
+    } catch (e) {
+      retried = true;
+      authState = "ログイン失敗（" + (e.code || e.message) + "）";
+      syncError = "サーバーにログインできません。電波の良い場所でページを再読み込みしてください。";
+      updateSyncStatus();
+      await new Promise((r) => setTimeout(r, Math.min(10000, 800 * 2 ** i)));
+    }
+  }
+  return retried;
 }
 
 /* ==================== 初期化 ==================== */
@@ -740,6 +796,12 @@ function bindEvents() {
   $("#btn-settings").addEventListener("click", openSettings);
   $("#st-close").addEventListener("click", () => { $("#modal-settings").hidden = true; });
   $("#btn-copy").addEventListener("click", copyShareUrl);
+  $("#btn-copy-diag").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(diagnosticsText());
+      toast("接続状態をコピーしました");
+    } catch { toast("コピーできませんでした"); }
+  });
   $("#who-buttons").addEventListener("click", (e) => {
     const b = e.target.closest(".who-btn");
     if (!b) return;
@@ -766,28 +828,33 @@ function bindEvents() {
 }
 
 function subscribe() {
-  onSnapshot(itemsCol, { includeMetadataChanges: true }, (snap) => {
+  unsubs.forEach((u) => { try { u(); } catch { /* noop */ } });
+  unsubs = [];
+
+  unsubs.push(onSnapshot(itemsCol, { includeMetadataChanges: true }, (snap) => {
     items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     netCached = snap.metadata.fromCache;
     netPending = snap.metadata.hasPendingWrites;
+    syncError = "";
     updateSyncStatus();
     render();
   }, (err) => {
-    const el = $("#sync-status");
-    el.textContent = "⚠️ 同期エラー: " + (err.code || err.message);
-    el.className = "sync-status is-err";
-    el.hidden = false;
-  });
+    const code = err.code || err.message;
+    syncError = code === "permission-denied"
+      ? "この部屋を読み書きする権限がありません（Firestore のルールを確認してください）"
+      : "同期エラー: " + code;
+    updateSyncStatus();
+  }));
 
-  onSnapshot(metaCol, (snap) => {
+  unsubs.push(onSnapshot(metaCol, (snap) => {
     metaDocs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     renderEdit();
-  }, () => { /* マスターが読めなくてもプリセットで動く */ });
+  }, () => { /* マスターが読めなくてもプリセットで動く */ }));
 
-  onSnapshot(query(histCol, orderBy("completedAt", "desc"), limit(20)), (snap) => {
+  unsubs.push(onSnapshot(query(histCol, orderBy("completedAt", "desc"), limit(20)), (snap) => {
     histDocs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     $("#btn-restore-last").hidden = histDocs.length === 0;
-  }, () => { /* 履歴は無くても動く */ });
+  }, () => { /* 履歴は無くても動く */ }));
 }
 
 async function main() {
@@ -797,13 +864,14 @@ async function main() {
   setMode(localStorage.getItem(MODE_KEY) || "edit");
   render();
 
-  try {
-    await signInAnonymously(auth);
-  } catch (e) {
-    // オフライン起動時はキャッシュで動くので、ここでは止めない
-    console.warn("匿名ログインに失敗しました:", e);
-  }
+  onAuthStateChanged(auth, (u) => {
+    if (u) authState = "ログイン済み（" + u.uid.slice(0, 6) + "…）";
+  });
+
+  // キャッシュからすぐ表示したいので、ログインを待たずに購読を始める。
+  // ログインが遅れて成功した場合は、権限エラーで止まった購読を貼り直す。
   subscribe();
+  ensureAuth().then((retried) => { if (retried && !syncError) subscribe(); });
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => { /* 失敗しても通常動作する */ });
