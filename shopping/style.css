@@ -73,9 +73,10 @@ h1, h2, h3 { margin: 0; }
   width: 38px; height: 38px; border-radius: 10px; font-size: 18px; cursor: pointer;
 }
 
-/* 正常時は非表示。異常時だけ出る */
+/* 正常時は非表示。異常時だけ、画面上端に貼り付いて必ず見えるようにする */
 .sync-status {
-  padding: 6px 12px; font-size: 12px; text-align: center;
+  position: sticky; top: 0; z-index: 35;
+  padding: 7px 12px; font-size: 12px; font-weight: 600; text-align: center;
   background: var(--panel); color: var(--sub); border-bottom: 1px solid var(--line);
 }
 .sync-status.is-off { background: #fff3cd; color: #6b5200; }
@@ -205,12 +206,17 @@ main { padding: 8px 10px 0; }
 /* ---------- 自由入力 ---------- */
 
 .free-add { display: flex; flex-direction: column; gap: 8px; }
-.free-add input, .free-add select {
+/* チェックボックスまで width:100% になって崩れていたので、入力欄だけに当てる */
+.free-add input:not([type="checkbox"]), .free-add select {
   padding: 11px; border: 1px solid var(--line); border-radius: 10px;
-  background: var(--bg); color: var(--text); width: 100%;
+  background: var(--bg); color: var(--text); width: 100%; min-width: 0;
 }
-.fa-row { display: grid; grid-template-columns: 74px 1fr 1fr; gap: 8px; }
-.fa-check { font-size: 13px; color: var(--sub); display: flex; align-items: center; gap: 6px; }
+.fa-row { display: grid; grid-template-columns: 84px 1fr; gap: 8px; }
+.fa-check {
+  font-size: 13px; color: var(--sub);
+  display: flex; align-items: center; justify-content: flex-start; gap: 8px;
+}
+.fa-check input[type="checkbox"] { flex: none; width: 18px; height: 18px; margin: 0; }
 
 /* ---------- 買い物モード ---------- */
 /* 進捗バーもチェックボタンも置かず、行そのものをタップしてカゴ入れする。
@@ -309,6 +315,13 @@ main { padding: 8px 10px 0; }
   background: var(--bg); color: var(--text); cursor: pointer;
 }
 .who-btn.is-on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+
+.diag {
+  margin: 0; padding: 10px; border-radius: 10px;
+  background: var(--bg); border: 1px solid var(--line);
+  font-size: 11px; line-height: 1.6; white-space: pre-wrap; word-break: break-all;
+  max-height: 180px; overflow-y: auto;
+}
 
 .history-list { max-height: 220px; overflow-y: auto; }
 .history-row { padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
