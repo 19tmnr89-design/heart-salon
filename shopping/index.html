@@ -61,9 +61,9 @@
         <div class="fa-row">
           <input name="qty" class="fa-qty" type="number" inputmode="numeric" min="1" max="999" step="1" value="1" aria-label="数量">
           <select name="unit" class="fa-unit" aria-label="単位"></select>
-          <select name="category" class="fa-cat" aria-label="カテゴリ"></select>
         </div>
         <input name="unitOther" class="fa-unit-other" placeholder="単位を入力" maxlength="6" hidden aria-label="単位（自由入力）">
+        <select name="category" class="fa-cat" aria-label="売り場"></select>
         <input name="tip" class="fa-tip" placeholder="選び方のコツ（任意）" maxlength="120">
         <label class="fa-check"><input type="checkbox" name="toMaster" checked> 次回から候補リストにも出す</label>
         <button type="submit" class="btn-primary">リストに追加</button>
@@ -173,6 +173,13 @@
       <span class="field-label">部屋ID（控えておくと復旧できます）</span>
       <input id="room-input" type="text" autocomplete="off" spellcheck="false">
       <button id="btn-join" class="btn-ghost btn-block" type="button">この部屋IDに切り替える</button>
+    </div>
+
+    <div class="field">
+      <span class="field-label">接続状態（うまく同期しないときの確認用）</span>
+      <pre id="diag" class="diag"></pre>
+      <button id="btn-copy-diag" class="btn-ghost btn-block" type="button">この情報をコピー</button>
+      <span class="field-note">相手のスマホと<b>部屋IDが同じ</b>なら同じリストを見ています。違う場合は、上の共有リンクを開き直してください。</span>
     </div>
 
     <div class="field">
