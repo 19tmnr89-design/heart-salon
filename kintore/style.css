@@ -300,6 +300,33 @@ input:focus, select:focus { border-color: var(--accent2); }
 .rec-sets { margin-top: 6px; font-size: 14px; color: var(--text); line-height: 1.7; }
 .rec-set-item { display: inline-block; margin-right: 10px; }
 .rec-set-item b { color: var(--accent2); }
+.rec-prev {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--sub);
+}
+.prev-delta {
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--panel2);
+}
+.prev-delta.up { color: var(--green); }
+.prev-delta.down { color: #ffa8a8; }
+.prev-delta.same { color: var(--sub); }
+.prev-first {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent2);
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--panel2);
+}
+
 .rec-memo { margin-top: 4px; font-size: 12px; color: var(--sub); }
 .rec-del {
   background: none; border: none; color: var(--sub);
