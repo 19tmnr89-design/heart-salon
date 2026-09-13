@@ -276,6 +276,55 @@ function renderTodaySummary() {
 
 /* ================= 履歴 ================= */
 
+// 同じ種目で、この日より前の直近の記録
+function findPrevRecord(rec) {
+  let best = null;
+  for (const r of records) {
+    if (r.exercise !== rec.exercise || r.date >= rec.date) continue;
+    if (!best || r.date > best.date) best = r;
+  }
+  return best;
+}
+
+function daysBetween(from, to) {
+  return Math.round((new Date(to) - new Date(from)) / 86400000);
+}
+
+// [36kg×12 ×3, 31kg×10] のように、同じ重量が続くまとまりで要約する
+function setsSummary(sets) {
+  const groups = [];
+  for (const s of sets) {
+    const last = groups[groups.length - 1];
+    if (last && last.weight === s.weight) last.reps.push(s.reps);
+    else groups.push({ weight: s.weight, reps: [s.reps] });
+  }
+  const parts = groups.map(g => {
+    const uniq = [...new Set(g.reps)];
+    if (g.reps.length > 1 && uniq.length === 1) return `${g.weight}kg×${uniq[0]} ×${g.reps.length}セット`;
+    return `${g.weight}kg×${g.reps.join(",")}`;
+  });
+  // 重量を細かく上下させた日は長くなりすぎるので、頭だけ見せて総セット数で締める
+  if (parts.length > 4) return parts.slice(0, 3).join(" / ") + ` … 計${sets.length}セット`;
+  return parts.join(" / ");
+}
+
+function prevCompareHTML(rec) {
+  const prev = findPrevRecord(rec);
+  if (!prev) return `<div class="rec-prev"><span class="prev-first">初回</span></div>`;
+
+  const prevVol = recordVolume(prev);
+  let badge = "";
+  if (prevVol > 0) {
+    const pct = Math.round((recordVolume(rec) - prevVol) / prevVol * 100);
+    const cls = pct > 0 ? "up" : pct < 0 ? "down" : "same";
+    const txt = pct > 0 ? `↑+${pct}%` : pct < 0 ? `↓${pct}%` : "±0%";
+    badge = `<span class="prev-delta ${cls}">${txt}</span>`;
+  }
+  const [, m, d] = prev.date.split("-").map(Number);
+  const gap = daysBetween(prev.date, rec.date);
+  return `<div class="rec-prev">${badge}<span class="prev-meta">前回 ${m}/${d}（${gap}日ぶり）· ${esc(setsSummary(prev.sets))}</span></div>`;
+}
+
 function recCardHTML(r) {
   const sets = r.sets.map(s => `<span class="rec-set-item"><b>${s.weight}</b>kg×${s.reps}</span>`).join("");
   return `
@@ -285,6 +334,7 @@ function recCardHTML(r) {
         <button type="button" class="rec-del" title="削除">🗑</button>
       </div>
       <div class="rec-sets">${sets}</div>
+      ${prevCompareHTML(r)}
       ${r.memo ? `<div class="rec-memo">📝 ${esc(r.memo)}</div>` : ""}
     </div>`;
 }
