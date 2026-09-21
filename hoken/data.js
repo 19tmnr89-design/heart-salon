@@ -9,6 +9,7 @@ const CATEGORIES = [
   { key: "medical", label: "医療・がん・就業不能・介護" },
   { key: "savings", label: "貯蓄型（個人年金・学資・外貨）" },
   { key: "nonlife", label: "損害保険（火災・地震・自動車）" },
+  { key: "tanki",   label: "少額短期保険・生活付帯サービス" },
 ];
 
 /* ---- 保障の種類（重複チェックの横串キー） ---- */
@@ -24,8 +25,10 @@ const COVERAGE_KINDS = [
   { key: "nursing_lump",       label: "介護一時金",        payout: "lump",    unit: "円" },
   { key: "nursing_monthly",    label: "介護の月額",        payout: "monthly", unit: "円/月" },
   { key: "maturity",           label: "満期金・年金原資",  payout: "lump",    unit: "円" },
-  { key: "property",           label: "物損",              payout: "lump",    unit: "円" },
+  { key: "property",           label: "物損・盗難",        payout: "lump",    unit: "円" },
   { key: "liability",          label: "賠償",              payout: "lump",    unit: "円" },
+  { key: "accident",           label: "傷害（死亡・後遺障害・入通院）", payout: "lump", unit: "円" },
+  { key: "service",            label: "サービス・現物の提供", payout: "none",   unit: "" },
 ];
 
 /* ---- 保険の種類プリセット ----
@@ -44,6 +47,8 @@ const PRODUCT_TYPES = [
   { key: "fx_savings",         label: "外貨建保険",    category: "savings", suggest: ["maturity", "death_lump"] },
   { key: "fire",               label: "火災・地震保険", category: "nonlife", suggest: ["property"] },
   { key: "auto",               label: "自動車保険",    category: "nonlife", suggest: ["liability", "property"] },
+  { key: "life_support",       label: "生活付帯サービス", category: "tanki",  suggest: ["service"] },
+  { key: "tanki_other",        label: "少額短期保険",   category: "tanki",   suggest: ["accident"] },
   { key: "other",              label: "その他",        category: "medical", suggest: [] },
 ];
 

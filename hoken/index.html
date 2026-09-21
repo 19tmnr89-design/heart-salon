@@ -295,6 +295,13 @@
   <section id="tab-settings" class="tab-panel">
 
     <div class="card">
+      <h2>用意してある契約データ</h2>
+      <p class="note">手元の台帳から用意した契約です。初めて開いたときに自動で取り込まれます。</p>
+      <div id="preset-list" style="margin-bottom:12px;"></div>
+      <button type="button" id="import-presets" class="btn-sub">取り込む</button>
+    </div>
+
+    <div class="card">
       <h2>入力のやり直し</h2>
       <p class="note">質問に順番に答えていく形で、前提をまとめて入力できます。</p>
       <button type="button" id="start-wizard" class="btn-main">入力ウィザードを開く</button>
@@ -385,6 +392,7 @@
 </div>
 
 <script src="data.js"></script>
+<script src="presets.js"></script>
 <script src="sim.js"></script>
 <script src="app.js"></script>
 <script type="module" src="sync.js"></script>
