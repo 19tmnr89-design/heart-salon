@@ -163,7 +163,7 @@
 | 項目 | 型 | 必須 | 備考 |
 |---|---|---|---|
 | id | string | ● | 内部ID |
-| category | enum | ● | `life`（生命・収入保障） / `medical`（医療・がん・就業不能・介護） / `savings`（個人年金・学資・外貨） / `nonlife`（火災・地震・自動車） |
+| category | enum | ● | `life`（生命・収入保障） / `medical`（医療・がん・就業不能・介護） / `savings`（個人年金・学資・外貨） / `nonlife`（火災・地震・自動車） / `tanki`（少額短期保険・生活付帯サービス） |
 | productType | enum | ● | プリセット（下記） |
 | insurer | string | ● | 保険会社名 |
 | productName | string | | 商品名 |
@@ -174,6 +174,9 @@
 | premium | object | ● | 保険料（下記） |
 | coverages | array | ● | 保障の配列（下記） |
 | beneficiary | string | | 受取人（続柄で持つ。氏名は任意） |
+| coveredPersons | string | | 対象になる人の範囲（例: 契約者本人および同居の親族） |
+| paymentMethod | string | | 支払方法（例: 電気料金合算 / クレジットカード） |
+| overlapNotes | array | | 重複の可能性についての覚書。**保存はするが画面には出さない**（重複チェックを作らない判断のため） |
 | storageNote | string | | **証券のありかメモ**（例：自宅の金庫／会社の総務／マイページはパスワード管理アプリ） |
 | contactNote | string | | 問い合わせ窓口のメモ（担当者名・部署など。電話番号は任意入力） |
 | memo | string | | 自由メモ |
@@ -198,17 +201,27 @@
 | termYears | number | 支払期間（収入保障など）。空なら一括または終身 |
 | minGuaranteeYears | number | 最低支払保証期間（収入保障保険向け） |
 | note | string | 支払条件のメモ（例：がん診断一時金は1回のみ） |
+| group | string | 保障の区分（例: 傷害補償、賠償責任）。台帳から取り込んだ契約で使う |
+| title | string | 項目名（例: 携行品損害補償）。あれば一覧・詳細でこちらを表示する |
+| details | string | 補償内容の説明文 |
+| limitText | string | 限度額の記載をそのまま持つ。「要証券確認」「10万〜30万円程度」など金額にできないものを入れる |
+| deductible | number | 免責金額（円） |
+| exclusions | array | 対象外の項目 |
+
+> `amount` は金額が確定しているものだけに入れる。幅のある記載や未確認のものは `null` のままにし、
+> `limitText` に原文を残す。一覧では金額を出さず項目名だけを表示する。
 
 **productType プリセット**
 `term_life`（定期保険） / `whole_life`（終身保険） / `income_protection`（収入保障） / `medical`（医療保険） /
 `cancer`（がん保険） / `disability`（就業不能保険） / `nursing`（介護保険） / `personal_pension`（個人年金） /
 `education`（学資保険） / `fx_savings`（外貨建） / `fire`（火災・地震） / `auto`（自動車） / `other`
 
-**coverage.kind プリセット（重複チェックの単位）**
+**coverage.kind プリセット（保障の横串キー）**
 `death_lump`（死亡一時金） / `death_monthly`（死亡後の月額） / `high_severity_lump`（三大疾病等の一時金） /
 `cancer_lump`（がん診断一時金） / `hospital_daily`（入院日額） / `surgery`（手術給付） /
 `advanced_medical`（先進医療） / `disability_monthly`（就業不能月額） / `nursing_lump`（介護一時金） /
-`nursing_monthly`（介護月額） / `maturity`（満期金・年金原資） / `property`（物損） / `liability`（賠償）
+`nursing_monthly`（介護月額） / `maturity`（満期金・年金原資） / `property`（物損・盗難） / `liability`（賠償） /
+`accident`（傷害：死亡・後遺障害・入通院） / `service`（サービス・現物の提供）
 
 ### 4.5 companyBenefits[]（会社の制度）
 
@@ -299,6 +312,17 @@
 
 ### 5.2 契約の登録・一覧（FR-02）
 
+**契約の詳細画面（FR-02b）**
+
+一覧の「詳しく見る」から、1契約の中身をまとめて読めるダイアログを開く。
+
+- 区分・種類・引受元・プラン名・状態・対象になる人・保険料（1回あたりと年額）・支払方法・受取人・
+  証券のありか・連絡先・メモ
+- 補償／サービスごとに、区分・項目名・説明・限度額・免責・対象外を並べる
+- 閲覧モードでも開ける（編集ボタンは出さない）
+- 画面に出していない項目（`overlapNotes` など）は、編集して保存しても消えない
+
+
 - 契約の追加・編集・削除。カテゴリ（生命／医療／貯蓄／損保）でタブまたは絞り込み。
 - 一覧には：保険会社・商品名・主な保障・年間保険料・状態（有効／払込済／失効）を表示。
 - 1契約に複数の保障（主契約＋特約）を追加できる。
@@ -343,6 +367,14 @@ MVPは**死亡ケースのみ**。ケース選択UIは最初から置き、就�
 - 見せる画面：もしもシミュレーションのサマリーとグラフ／契約一覧（保険会社・保障内容・ありかメモ・連絡先メモ）。
 - 見せない画面：棚卸しダッシュボード、前提の編集、ウィザード、設定。
 - 閲覧モードであることを画面上部に常時表示する。
+
+### 5.7b 台帳データの取り込み（FR-07b）
+
+手元の台帳から起こした契約を `presets.js` に置き、アプリに取り込めるようにする。
+
+- 初めて開いたときに一度だけ自動で取り込む（`hoken-presets-imported` フラグで管理）
+- 設定タブから手動でも取り込める。`id` が一致する契約がすでにあれば追加しない
+- 取り込み済みかどうかを設定タブに表示する
 
 ### 5.7 データの入出力（FR-07）
 
