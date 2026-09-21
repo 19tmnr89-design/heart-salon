@@ -1200,13 +1200,26 @@ function renderPresetCard() {
     el.innerHTML = '<p class="note last">用意されている契約はありません。</p>';
     return;
   }
+  let stale = 0;
   el.innerHTML = presets.map(preset => {
-    const done = DATA.policies.some(x => x.id === preset.id);
+    const cur = DATA.policies.find(x => x.id === preset.id);
+    let badge;
+    if (!cur) {
+      badge = '<span class="badge">未取り込み</span>';
+    } else if (preset.ledgerUpdatedAt && cur.ledgerUpdatedAt !== preset.ledgerUpdatedAt) {
+      badge = '<span class="badge warn">台帳が新しい</span>';
+      stale++;
+    } else {
+      badge = '<span class="badge ok">取り込み済み</span>';
+    }
     return '<div class="bar-line"><span class="bl-name" style="width:auto;flex:1;">' +
-      esc(preset.insurer + " " + preset.productName) + "</span>" +
-      (done ? '<span class="badge ok">取り込み済み</span>' : '<span class="badge">未取り込み</span>') +
-      "</div>";
+      esc(preset.productName) + "</span>" + badge + "</div>";
   }).join("");
+  if (stale) {
+    el.innerHTML += '<p class="note" style="margin-top:10px;margin-bottom:0;">' +
+      "台帳の内容が更新されています。「台帳の内容で上書きする」で反映できます。" +
+      "（この画面で加えた変更は失われます）</p>";
+  }
 }
 
 /* ================= 設定タブ ================= */
