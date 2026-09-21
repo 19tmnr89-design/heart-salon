@@ -28,6 +28,8 @@ const COVERAGE_KINDS = [
   { key: "property",           label: "物損・盗難",        payout: "lump",    unit: "円" },
   { key: "liability",          label: "賠償",              payout: "lump",    unit: "円" },
   { key: "accident",           label: "傷害（死亡・後遺障害・入通院）", payout: "lump", unit: "円" },
+  { key: "expense",            label: "費用補償",          payout: "lump",    unit: "円" },
+  { key: "legal",              label: "弁護士費用・法律相談", payout: "lump",  unit: "円" },
   { key: "service",            label: "サービス・現物の提供", payout: "none",   unit: "" },
 ];
 
