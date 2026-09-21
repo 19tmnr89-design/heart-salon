@@ -10,6 +10,7 @@ const CATEGORIES = [
   { key: "savings", label: "貯蓄型（個人年金・学資・外貨）" },
   { key: "nonlife", label: "損害保険（火災・地震・自動車）" },
   { key: "tanki",   label: "少額短期保険・生活付帯サービス" },
+  { key: "group",   label: "団体保険（生協・勤務先経由）" },
 ];
 
 /* ---- 保障の種類（重複チェックの横串キー） ---- */
@@ -19,6 +20,7 @@ const COVERAGE_KINDS = [
   { key: "high_severity_lump", label: "三大疾病等の一時金", payout: "lump",    unit: "円" },
   { key: "cancer_lump",        label: "がん診断一時金",    payout: "lump",    unit: "円" },
   { key: "hospital_daily",     label: "入院日額",          payout: "daily",   unit: "円/日" },
+  { key: "outpatient_daily",   label: "通院日額",          payout: "daily",   unit: "円/日" },
   { key: "surgery",            label: "手術給付",          payout: "lump",    unit: "円" },
   { key: "advanced_medical",   label: "先進医療",          payout: "lump",    unit: "円" },
   { key: "disability_monthly", label: "就業不能の月額",    payout: "monthly", unit: "円/月" },
@@ -50,6 +52,7 @@ const PRODUCT_TYPES = [
   { key: "fire",               label: "火災・地震保険", category: "nonlife", suggest: ["property"] },
   { key: "auto",               label: "自動車保険",    category: "nonlife", suggest: ["liability", "property"] },
   { key: "life_support",       label: "生活付帯サービス", category: "tanki",  suggest: ["service"] },
+  { key: "group_plan",         label: "団体総合保障プラン", category: "group", suggest: ["accident", "liability"] },
   { key: "tanki_other",        label: "少額短期保険",   category: "tanki",   suggest: ["accident"] },
   { key: "other",              label: "その他",        category: "medical", suggest: [] },
 ];
