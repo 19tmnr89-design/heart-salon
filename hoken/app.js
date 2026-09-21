@@ -478,6 +478,12 @@ function renderPolicies() {
       box("月あたり", Math.round(ps.total / 12).toLocaleString("ja-JP"), "円", "有効な契約の合計", "") +
       box("一時払で払った額", n(ps.lumpTotal).toLocaleString("ja-JP"), "円", "年額には含めていません", "") +
       "</div>";
+    const noPremium = DATA.policies.filter(p =>
+      p.status === "active" && !n((p.premium || {}).amount)).length;
+    if (noPremium) {
+      html += '<p class="note">保険料が未登録の契約が' + noPremium +
+        "件あります。合計にはその分が入っていません。</p>";
+    }
     html += ps.byPolicy.filter(p => p.annual > 0).map(p =>
       '<div class="bar-line"><span class="bl-name">' + esc(p.name) + "</span>" +
       '<span class="bl-bar"><i style="width:' + Math.round((p.annual / maxAnnual) * 100) + '%"></i></span>' +
@@ -501,8 +507,8 @@ function renderPolicies() {
       const covs = (p.coverages || []).map(covSummary).join(" ／ ") || "保障が未入力";
       const statusBadge = p.status === "active" ? "" :
         '<span class="badge off">' + label(STATUSES, p.status) + "</span>";
-      const prem = p.premium && p.premium.cycle === "lump"
-        ? "一時払 " + yenStr(p.premium.amount)
+      const prem = !n((p.premium || {}).amount) ? "保険料未登録"
+        : p.premium.cycle === "lump" ? "一時払 " + yenStr(p.premium.amount)
         : yenStr(S.annualPremium(p)) + "/年";
       return '<div class="item"><div class="item-head">' +
         '<span class="name">' + esc(S.policyLabel(p)) + "</span>" +
@@ -573,6 +579,9 @@ function openPolicyDetail(p) {
       (annual ? "　年間 " + yenStr(annual) : ""));
   }
   add("支払方法", p.paymentMethod);
+  const ct = p.contractTerms || {};
+  add("契約期間", ct.termType);
+  add("次回の更新", ct.renewalPeriod);
   add("受取人", p.beneficiary);
   add("証券のありか", p.storageNote);
   add("連絡先", p.contactNote);
@@ -580,6 +589,11 @@ function openPolicyDetail(p) {
 
   let body = '<dl class="detail-dl">' +
     rows.map(r => "<dt>" + esc(r[0]) + "</dt><dd>" + esc(r[1]) + "</dd>").join("") + "</dl>";
+
+  if (ct.clauses && ct.clauses.length) {
+    body += '<h3 class="detail-h">適用される特約</h3><ul class="detail-ul">' +
+      ct.clauses.map(c => "<li>" + esc(c) + "</li>").join("") + "</ul>";
+  }
 
   const covs = p.coverages || [];
   if (covs.length) {
@@ -590,6 +604,7 @@ function openPolicyDetail(p) {
         (c.group ? '<span class="badge">' + esc(c.group) + "</span>" : "") +
         '<span class="name">' + esc(c.title || label(D.COVERAGE_KINDS, c.kind)) + "</span>" +
         (n(c.amount) ? '<span class="meta">' + esc(covAmountText(c)) + "</span>" : "") +
+        (c.settlementService ? '<span class="badge ok">示談交渉サービスあり</span>' : "") +
         "</div>";
       if (c.details) h += "<p>" + esc(c.details) + "</p>";
       const meta = [];
@@ -597,6 +612,10 @@ function openPolicyDetail(p) {
       if (n(c.deductible)) meta.push("免責: " + yenStr(c.deductible));
       if (c.note) meta.push(c.note);
       if (meta.length) h += '<p class="sub">' + esc(meta.join("　／　")) + "</p>";
+      if (c.conditions && c.conditions.length) {
+        h += '<p class="sub">支払いの条件:</p><ul class="detail-ul">' +
+          c.conditions.map(x => "<li>" + esc(x) + "</li>").join("") + "</ul>";
+      }
       if (c.exclusions && c.exclusions.length) {
         h += '<p class="sub">対象外:</p><ul class="detail-ul">' +
           c.exclusions.map(x => "<li>" + esc(x) + "</li>").join("") + "</ul>";
@@ -1116,11 +1135,30 @@ function refreshEduBadge(changedKey) {
 
 const PRESET_FLAG = "hoken-presets-imported";
 
-/* id が一致する契約がすでにあれば飛ばす。戻り値は追加した件数。 */
-function importPresets() {
-  const presets = (typeof HOKEN_PRESETS !== "undefined") ? HOKEN_PRESETS : [];
+function presetList() {
+  return (typeof HOKEN_PRESETS !== "undefined") ? HOKEN_PRESETS : [];
+}
+
+/* 取り込んだ契約のidを覚えておく。
+   一度取り込んだものを自分で消した場合に、勝手に復活しないようにするため。 */
+function loadPresetLog() {
+  const raw = localStorage.getItem(PRESET_FLAG);
+  if (!raw || raw === "1") return null; // 未取り込み、または古い形式の印
+  try {
+    const a = JSON.parse(raw);
+    return Array.isArray(a) ? a : null;
+  } catch (e) { return null; }
+}
+function savePresetLog(log) {
+  localStorage.setItem(PRESET_FLAG, JSON.stringify(log));
+}
+
+/* まだ一度も取り込んでいない契約だけを追加する。戻り値は追加した件数。 */
+function importNewPresets(log) {
   let added = 0;
-  presets.forEach(preset => {
+  presetList().forEach(preset => {
+    if (log.indexOf(preset.id) >= 0) return;
+    log.push(preset.id);
     if (DATA.policies.some(x => x.id === preset.id)) return;
     DATA.policies.push(JSON.parse(JSON.stringify(preset)));
     added++;
@@ -1128,8 +1166,34 @@ function importPresets() {
   return added;
 }
 
+/* 設定タブのボタン用。まだ入っていないものをすべて追加する。 */
+function importPresets() {
+  const log = loadPresetLog() || [];
+  let added = 0;
+  presetList().forEach(preset => {
+    if (log.indexOf(preset.id) < 0) log.push(preset.id);
+    if (DATA.policies.some(x => x.id === preset.id)) return;
+    DATA.policies.push(JSON.parse(JSON.stringify(preset)));
+    added++;
+  });
+  savePresetLog(log);
+  return added;
+}
+
+/* 台帳の内容で既存の契約を置き換える。画面で加えた変更は失われる。 */
+function overwriteFromPresets() {
+  let count = 0;
+  presetList().forEach(preset => {
+    const i = DATA.policies.findIndex(x => x.id === preset.id);
+    if (i < 0) return;
+    DATA.policies[i] = JSON.parse(JSON.stringify(preset));
+    count++;
+  });
+  return count;
+}
+
 function renderPresetCard() {
-  const presets = (typeof HOKEN_PRESETS !== "undefined") ? HOKEN_PRESETS : [];
+  const presets = presetList();
   const el = $("preset-list");
   if (!el) return;
   if (!presets.length) {
@@ -1158,6 +1222,13 @@ function setupSettings() {
     const added = importPresets();
     if (added) { save(); showIoMsg(added + "件を取り込みました"); }
     else { renderPresetCard(); showIoMsg("すべて取り込み済みです"); }
+  });
+
+  $("overwrite-presets").addEventListener("click", () => {
+    if (!confirm("台帳の内容で契約を置き換えます。\nこの画面で加えた変更（証券のありかメモなど）は失われます。よろしいですか？")) return;
+    const count = overwriteFromPresets();
+    if (count) { save(); showIoMsg(count + "件を台帳の内容で置き換えました"); }
+    else { showIoMsg("置き換える契約がありませんでした"); }
   });
 
   $("copy-view-url").addEventListener("click", () => {
@@ -1535,10 +1606,16 @@ function init() {
     renderAll();
   });
 
-  /* 手元の台帳から用意した契約を、初回だけ自動で取り込む */
-  if (!viewMode && !localStorage.getItem(PRESET_FLAG)) {
-    const added = importPresets();
-    localStorage.setItem(PRESET_FLAG, "1");
+  /* 手元の台帳から用意した契約のうち、まだ取り込んでいないものを取り込む。
+     あとから台帳に契約が増えたときも、次に開いたときに入る。 */
+  if (!viewMode) {
+    let log = loadPresetLog();
+    if (log === null) {
+      // 初回、または古い形式。すでに入っている契約は取り込み済みとみなす。
+      log = presetList().filter(x => DATA.policies.some(y => y.id === x.id)).map(x => x.id);
+    }
+    const added = importNewPresets(log);
+    savePresetLog(log);
     if (added) persist();
   }
 
