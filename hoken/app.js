@@ -33,12 +33,22 @@ function man(yen) {
   return rounded.toLocaleString("ja-JP");
 }
 function manYen(yen) { return man(yen) + "万円"; }
+/* 1億以上は「1億2,000万円」の形にする */
+function moneyStr(yen) {
+  const v = n(yen);
+  const abs = Math.abs(v);
+  if (abs < 100000000) return manYen(v);
+  const oku = Math.floor(abs / 100000000);
+  const rest = abs % 100000000;
+  return (v < 0 ? "-" : "") + oku + "億" + (rest ? man(rest) + "万" : "") + "円";
+}
 function yenStr(v) { return n(v).toLocaleString("ja-JP") + "円"; }
 
 /* 入力欄の単位。日額だけ円、それ以外は万円で受け取る */
 function covUnit(kind) {
   const k = D.COVERAGE_KINDS.find(c => c.key === kind);
   if (!k) return { unit: "万円", scale: 10000 };
+  if (k.payout === "none") return { unit: "", scale: 1 };
   if (k.payout === "daily") return { unit: "円/日", scale: 1 };
   if (k.payout === "monthly") return { unit: "万円/月", scale: 10000 };
   return { unit: "万円", scale: 10000 };
@@ -430,11 +440,15 @@ function numVal(id, scale) { return Math.round(n(val(id)) * (scale || 1)); }
 let dialogSave = null, dialogDelete = null;
 
 function openDialog(opts) {
+  const ro = !!opts.readOnly;
   $("dialog-title").textContent = opts.title;
   $("dialog-body").innerHTML = opts.body;
-  $("dialog-delete").hidden = !opts.onDelete;
-  dialogSave = opts.onSave;
-  dialogDelete = opts.onDelete;
+  $("dialog-delete").hidden = ro || !opts.onDelete;
+  $("dialog-save").hidden = ro && !opts.onEdit;
+  $("dialog-save").textContent = ro ? "編集する" : "保存";
+  $("dialog-cancel").textContent = ro ? "閉じる" : "キャンセル";
+  dialogSave = ro ? opts.onEdit : opts.onSave;
+  dialogDelete = ro ? null : opts.onDelete;
   $("dialog-overlay").hidden = false;
   if (opts.after) opts.after();
 }
@@ -460,20 +474,20 @@ function renderPolicies() {
     html = '<p class="empty-note">有効な契約がまだありません。</p>';
   } else {
     html = '<div class="summary-grid" style="margin-bottom:16px;">' +
-      box("年間の保険料", man(ps.total), "万円", "月あたり約" + manYen(ps.total / 12), "") +
-      box("月あたり", man(ps.total / 12), "万円", "有効な契約の合計", "") +
-      box("一時払で払った額", man(ps.lumpTotal), "万円", "年額には含めていません", "") +
+      box("年間の保険料", n(ps.total).toLocaleString("ja-JP"), "円", "約" + manYen(ps.total), "") +
+      box("月あたり", Math.round(ps.total / 12).toLocaleString("ja-JP"), "円", "有効な契約の合計", "") +
+      box("一時払で払った額", n(ps.lumpTotal).toLocaleString("ja-JP"), "円", "年額には含めていません", "") +
       "</div>";
     html += ps.byPolicy.filter(p => p.annual > 0).map(p =>
       '<div class="bar-line"><span class="bl-name">' + esc(p.name) + "</span>" +
       '<span class="bl-bar"><i style="width:' + Math.round((p.annual / maxAnnual) * 100) + '%"></i></span>' +
-      '<span class="bl-val">' + manYen(p.annual) + "/年</span></div>").join("");
+      '<span class="bl-val">' + yenStr(p.annual) + "/年</span></div>").join("");
     const cats = D.CATEGORIES.filter(c => ps.byCategory[c.key]);
     if (cats.length) {
       html += '<table style="margin-top:14px;"><thead><tr><th>種類別</th><th class="num">年額</th></tr></thead><tbody>' +
-        cats.map(c => "<tr><td>" + esc(c.label) + '</td><td class="num">' + manYen(ps.byCategory[c.key]) +
+        cats.map(c => "<tr><td>" + esc(c.label) + '</td><td class="num">' + yenStr(ps.byCategory[c.key]) +
           "</td></tr>").join("") +
-        '</tbody><tfoot><tr><td>合計</td><td class="num">' + manYen(ps.total) + "</td></tr></tfoot></table>";
+        '</tbody><tfoot><tr><td>合計</td><td class="num">' + yenStr(ps.total) + "</td></tr></tfoot></table>";
     }
   }
   $("premium-summary").innerHTML = html;
@@ -484,18 +498,12 @@ function renderPolicies() {
     list.innerHTML = '<p class="empty-note">まだ保険が登録されていません。</p>';
   } else {
     list.innerHTML = DATA.policies.map(p => {
-      const covs = (p.coverages || []).map(c => {
-        const u = covUnit(c.kind);
-        const amt = u.scale === 1 ? yenStr(c.amount) : manYen(c.amount);
-        const term = c.kind === "death_monthly" && c.termYears ? "（" + c.termYears + "年間）" : "";
-        return label(D.COVERAGE_KINDS, c.kind) + " " + amt + (u.unit.indexOf("/月") >= 0 ? "/月" : "") +
-          (u.unit.indexOf("/日") >= 0 ? "/日" : "") + term;
-      }).join(" ／ ") || "保障が未入力";
+      const covs = (p.coverages || []).map(covSummary).join(" ／ ") || "保障が未入力";
       const statusBadge = p.status === "active" ? "" :
         '<span class="badge off">' + label(STATUSES, p.status) + "</span>";
       const prem = p.premium && p.premium.cycle === "lump"
-        ? "一時払 " + manYen(p.premium.amount)
-        : manYen(S.annualPremium(p)) + "/年";
+        ? "一時払 " + yenStr(p.premium.amount)
+        : yenStr(S.annualPremium(p)) + "/年";
       return '<div class="item"><div class="item-head">' +
         '<span class="name">' + esc(S.policyLabel(p)) + "</span>" +
         '<span class="badge">' + esc(label(D.PRODUCT_TYPES, p.productType)) + "</span>" +
@@ -506,9 +514,10 @@ function renderPolicies() {
         (p.contactNote ? "<br>連絡先: " + esc(p.contactNote) : "") +
         (p.beneficiary ? "<br>受取人: " + esc(p.beneficiary) : "") +
         "</div>" +
-        (viewMode ? "" : '<div class="item-actions"><button type="button" class="btn-sub" data-edit-policy="' +
-          p.id + '">編集</button></div>') +
-        "</div>";
+        '<div class="item-actions">' +
+        '<button type="button" class="btn-sub" data-detail-policy="' + p.id + '">詳しく見る</button>' +
+        (viewMode ? "" : '<button type="button" class="btn-sub" data-edit-policy="' + p.id + '">編集</button>') +
+        "</div></div>";
     }).join("");
   }
 
@@ -519,8 +528,8 @@ function renderPolicies() {
   } else {
     clist.innerHTML = DATA.companyBenefits.map(b => {
       const kind = D.COMPANY_BENEFIT_KINDS.find(k => k.key === b.kind) || {};
-      const amt = b.payoutType === "monthly" ? manYen(b.amount) + "/月"
-        : b.payoutType === "annual" ? manYen(b.amount) + "/年" : manYen(b.amount);
+      const amt = b.payoutType === "monthly" ? moneyStr(b.amount) + "/月"
+        : b.payoutType === "annual" ? moneyStr(b.amount) + "/年" : moneyStr(b.amount);
       return '<div class="item"><div class="item-head">' +
         '<span class="name">' + esc(b.name || kind.label || "") + "</span>" +
         '<span class="badge">' + esc(kind.label || "") + "</span>" +
@@ -532,6 +541,82 @@ function renderPolicies() {
         "</div>";
     }).join("");
   }
+}
+
+/* 保障1行分の要約。金額が入っていないもの（サービスや限度額が幅のあるもの）は名前だけ出す。 */
+function covSummary(c) {
+  const name = c.title || label(D.COVERAGE_KINDS, c.kind);
+  if (!n(c.amount)) return name;
+  const u = covUnit(c.kind);
+  const amt = u.scale === 1 ? yenStr(c.amount) : moneyStr(c.amount);
+  const suffix = u.unit.indexOf("/月") >= 0 ? "/月" : u.unit.indexOf("/日") >= 0 ? "/日" : "";
+  const term = c.kind === "death_monthly" && c.termYears ? "（" + c.termYears + "年間）" : "";
+  return name + " " + amt + suffix + term;
+}
+
+/* ---- 保険の詳細 ---- */
+
+function openPolicyDetail(p) {
+  if (!p) return;
+  const rows = [];
+  const add = (k, v) => { if (v) rows.push([k, v]); };
+  add("区分", label(D.CATEGORIES, p.category));
+  add("種類", label(D.PRODUCT_TYPES, p.productType));
+  add("引受・提供元", p.insurer);
+  add("プラン名", p.productName);
+  add("状態", label(STATUSES, p.status));
+  add("対象になる人", p.coveredPersons);
+  const cycle = D.PREMIUM_CYCLES.find(c => c.key === (p.premium || {}).cycle);
+  if (p.premium && p.premium.amount) {
+    const annual = S.annualPremium(p);
+    add("保険料", yenStr(p.premium.amount) + "（" + (cycle ? cycle.label : "") + "）" +
+      (annual ? "　年間 " + yenStr(annual) : ""));
+  }
+  add("支払方法", p.paymentMethod);
+  add("受取人", p.beneficiary);
+  add("証券のありか", p.storageNote);
+  add("連絡先", p.contactNote);
+  add("メモ", p.memo);
+
+  let body = '<dl class="detail-dl">' +
+    rows.map(r => "<dt>" + esc(r[0]) + "</dt><dd>" + esc(r[1]) + "</dd>").join("") + "</dl>";
+
+  const covs = p.coverages || [];
+  if (covs.length) {
+    body += '<h3 class="detail-h">補償・サービスの内容</h3>';
+    body += covs.map(c => {
+      let h = '<div class="detail-cov">';
+      h += '<div class="detail-cov-head">' +
+        (c.group ? '<span class="badge">' + esc(c.group) + "</span>" : "") +
+        '<span class="name">' + esc(c.title || label(D.COVERAGE_KINDS, c.kind)) + "</span>" +
+        (n(c.amount) ? '<span class="meta">' + esc(covAmountText(c)) + "</span>" : "") +
+        "</div>";
+      if (c.details) h += "<p>" + esc(c.details) + "</p>";
+      const meta = [];
+      if (c.limitText) meta.push("限度額: " + c.limitText);
+      if (n(c.deductible)) meta.push("免責: " + yenStr(c.deductible));
+      if (c.note) meta.push(c.note);
+      if (meta.length) h += '<p class="sub">' + esc(meta.join("　／　")) + "</p>";
+      if (c.exclusions && c.exclusions.length) {
+        h += '<p class="sub">対象外:</p><ul class="detail-ul">' +
+          c.exclusions.map(x => "<li>" + esc(x) + "</li>").join("") + "</ul>";
+      }
+      return h + "</div>";
+    }).join("");
+  }
+
+  openDialog({
+    title: S.policyLabel(p),
+    body: body,
+    readOnly: true,
+    onEdit: viewMode ? null : () => { closeDialog(); openPolicyDialog(p); },
+  });
+}
+
+function covAmountText(c) {
+  const u = covUnit(c.kind);
+  const amt = u.scale === 1 ? yenStr(c.amount) : moneyStr(c.amount);
+  return amt + (u.unit.indexOf("/月") >= 0 ? "/月" : u.unit.indexOf("/日") >= 0 ? "/日" : "");
 }
 
 /* ---- 保険の追加・編集 ---- */
@@ -549,7 +634,8 @@ function covRowsHtml(covs) {
     const isMonthly = c.kind === "death_monthly" || c.kind === "disability_monthly" || c.kind === "nursing_monthly";
     return '<div class="cov-row">' +
       '<div>' + (i === 0 ? '<label style="font-size:11px;color:#8e97a8;">保障の種類</label>' : "") +
-      sel("cov-kind-" + i, D.COVERAGE_KINDS, c.kind) + "</div>" +
+      sel("cov-kind-" + i, D.COVERAGE_KINDS, c.kind) +
+      (c.title ? '<p class="sublabel">' + esc(c.title) + "</p>" : "") + "</div>" +
       '<div>' + (i === 0 ? '<label style="font-size:11px;color:#8e97a8;">金額</label>' : "") +
       unitInp("cov-amt-" + i, c.amount ? c.amount / u.scale : "", u.unit, "") + "</div>" +
       '<div>' + (i === 0 ? '<label style="font-size:11px;color:#8e97a8;">支払期間</label>' : "") +
@@ -560,20 +646,21 @@ function covRowsHtml(covs) {
   }).join("");
 }
 
-function collectCovs(count) {
+/* 画面の入力を既存の保障オブジェクトに上書きする。
+   台帳から取り込んだ説明・限度額・対象外などは画面に出していないので、消さないように残す。 */
+function collectCovs(existing) {
   const out = [];
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < existing.length; i++) {
     const kindEl = $("cov-kind-" + i);
-    if (!kindEl) continue;
+    if (!kindEl) { out.push(existing[i]); continue; }
     const kind = kindEl.value;
     const u = covUnit(kind);
-    out.push({
+    const amt = val("cov-amt-" + i) === "" ? null : numVal("cov-amt-" + i, u.scale);
+    out.push(Object.assign({}, existing[i], {
       kind: kind,
-      amount: numVal("cov-amt-" + i, u.scale),
+      amount: amt,
       termYears: $("cov-term-" + i) ? (val("cov-term-" + i) === "" ? null : n(val("cov-term-" + i))) : null,
-      minGuaranteeYears: null,
-      note: "",
-    });
+    }));
   }
   return out;
 }
@@ -583,6 +670,7 @@ function openPolicyDialog(existing) {
     id: uid(), category: "life", productType: "term_life", insurer: "", productName: "",
     status: "active", startDate: "", endDate: "", isWholeLife: false,
     premium: { amount: 0, cycle: "monthly", payUntilAge: null },
+    paymentMethod: "", coveredPersons: "",
     coverages: suggestCoverages("term_life"),
     beneficiary: "", storageNote: "", contactNote: "", memo: "",
   };
@@ -605,6 +693,10 @@ function openPolicyDialog(existing) {
     '<div class="field"><label>保障の内容</label><div id="cov-rows">' + covRowsHtml(covs) + "</div>" +
     '<div class="btn-row"><button type="button" class="btn-sub" id="add-cov">＋ 保障を追加</button></div></div>' +
     '<div class="field-row">' +
+    fld("対象になる人", inp("po-covered", "text", p.coveredPersons, "例: 契約者本人および同居の親族")) +
+    fld("支払方法", inp("po-method", "text", p.paymentMethod, "例: 口座振替／クレジットカード")) +
+    "</div>" +
+    '<div class="field-row">' +
     fld("受取人", inp("po-bene", "text", p.beneficiary, "例: 妻")) +
     fld("証券のありか", inp("po-storage", "text", p.storageNote, "例: 自宅の金庫"),
       "番号は書かないでください。置き場所だけを書きます。") +
@@ -616,21 +708,22 @@ function openPolicyDialog(existing) {
     title: existing ? "保険を編集" : "保険を追加",
     body: body,
     onSave: () => {
-      covs = collectCovs(covs.length);
+      covs = collectCovs(covs);
       const productType = val("po-type");
       const pt = D.PRODUCT_TYPES.find(x => x.key === productType);
-      const saved = {
+      /* 画面に出していない項目（台帳由来の overlapNotes など）を落とさないよう、元の契約に重ねる */
+      const saved = Object.assign({}, p, {
         id: p.id, category: pt ? pt.category : "life", productType: productType,
         insurer: val("po-insurer"), productName: val("po-name"), status: val("po-status"),
-        startDate: p.startDate, endDate: p.endDate, isWholeLife: p.isWholeLife,
         premium: {
           amount: numVal("po-prem"), cycle: val("po-cycle"),
           payUntilAge: val("po-until") === "" ? null : n(val("po-until")),
         },
         coverages: covs,
+        coveredPersons: val("po-covered"), paymentMethod: val("po-method"),
         beneficiary: val("po-bene"), storageNote: val("po-storage"),
         contactNote: val("po-contact"), memo: val("po-memo"),
-      };
+      });
       const i = DATA.policies.findIndex(x => x.id === p.id);
       if (i >= 0) DATA.policies[i] = saved; else DATA.policies.push(saved);
       closeDialog(); save();
@@ -643,25 +736,25 @@ function openPolicyDialog(existing) {
     after: () => {
       const rerender = () => { $("cov-rows").innerHTML = covRowsHtml(covs); };
       $("po-type").addEventListener("change", () => {
-        covs = collectCovs(covs.length);
-        if (covs.every(c => !c.amount)) covs = suggestCoverages(val("po-type"));
+        covs = collectCovs(covs);
+        if (covs.every(c => !n(c.amount) && !c.title)) covs = suggestCoverages(val("po-type"));
         rerender();
       });
       $("add-cov").addEventListener("click", () => {
-        covs = collectCovs(covs.length);
+        covs = collectCovs(covs);
         covs.push({ kind: "death_lump", amount: 0, termYears: null, minGuaranteeYears: null, note: "" });
         rerender();
       });
       $("cov-rows").addEventListener("click", e => {
         const btn = e.target.closest("[data-del-cov]");
         if (!btn) return;
-        covs = collectCovs(covs.length);
+        covs = collectCovs(covs);
         covs.splice(Number(btn.dataset.delCov), 1);
         rerender();
       });
       $("cov-rows").addEventListener("change", e => {
         if (!e.target.id || e.target.id.indexOf("cov-kind-") !== 0) return;
-        covs = collectCovs(covs.length);
+        covs = collectCovs(covs);
         rerender();
       });
     },
@@ -1019,14 +1112,54 @@ function refreshEduBadge(changedKey) {
     : '<span class="badge off">概算のまま</span>';
 }
 
+/* ================= 台帳データの取り込み ================= */
+
+const PRESET_FLAG = "hoken-presets-imported";
+
+/* id が一致する契約がすでにあれば飛ばす。戻り値は追加した件数。 */
+function importPresets() {
+  const presets = (typeof HOKEN_PRESETS !== "undefined") ? HOKEN_PRESETS : [];
+  let added = 0;
+  presets.forEach(preset => {
+    if (DATA.policies.some(x => x.id === preset.id)) return;
+    DATA.policies.push(JSON.parse(JSON.stringify(preset)));
+    added++;
+  });
+  return added;
+}
+
+function renderPresetCard() {
+  const presets = (typeof HOKEN_PRESETS !== "undefined") ? HOKEN_PRESETS : [];
+  const el = $("preset-list");
+  if (!el) return;
+  if (!presets.length) {
+    el.innerHTML = '<p class="note last">用意されている契約はありません。</p>';
+    return;
+  }
+  el.innerHTML = presets.map(preset => {
+    const done = DATA.policies.some(x => x.id === preset.id);
+    return '<div class="bar-line"><span class="bl-name" style="width:auto;flex:1;">' +
+      esc(preset.insurer + " " + preset.productName) + "</span>" +
+      (done ? '<span class="badge ok">取り込み済み</span>' : '<span class="badge">未取り込み</span>') +
+      "</div>";
+  }).join("");
+}
+
 /* ================= 設定タブ ================= */
 
 function renderSettings() {
   const url = location.origin + location.pathname + "#view";
   $("view-url").textContent = url;
+  renderPresetCard();
 }
 
 function setupSettings() {
+  $("import-presets").addEventListener("click", () => {
+    const added = importPresets();
+    if (added) { save(); showIoMsg(added + "件を取り込みました"); }
+    else { renderPresetCard(); showIoMsg("すべて取り込み済みです"); }
+  });
+
   $("copy-view-url").addEventListener("click", () => {
     const url = $("view-url").textContent;
     if (navigator.clipboard) {
@@ -1362,11 +1495,6 @@ function init() {
     $("start-wizard").addEventListener("click", openWizard);
     $("start-wizard-2").addEventListener("click", openWizard);
 
-    $("dialog-cancel").addEventListener("click", closeDialog);
-    $("dialog-save").addEventListener("click", () => { if (dialogSave) dialogSave(); });
-    $("dialog-delete").addEventListener("click", () => { if (dialogDelete) dialogDelete(); });
-    $("dialog-overlay").addEventListener("click", e => { if (e.target.id === "dialog-overlay") closeDialog(); });
-
     /* 表を丸ごと描き直すと入力欄からフォーカスが外れた瞬間に壊れるので、
        ここではバッジだけを書き換える。 */
     $("edu-table").addEventListener("change", e => {
@@ -1381,9 +1509,16 @@ function init() {
     });
   }
 
+  /* ダイアログは詳細表示にも使うので、閲覧モードでも動かす */
+  $("dialog-cancel").addEventListener("click", closeDialog);
+  $("dialog-save").addEventListener("click", () => { if (dialogSave) dialogSave(); });
+  $("dialog-delete").addEventListener("click", () => { if (dialogDelete) dialogDelete(); });
+  $("dialog-overlay").addEventListener("click", e => { if (e.target.id === "dialog-overlay") closeDialog(); });
+
   document.body.addEventListener("click", e => {
     const t = e.target;
     if (!t.dataset) return;
+    if (t.dataset.detailPolicy) openPolicyDetail(DATA.policies.find(x => x.id === t.dataset.detailPolicy));
     if (t.dataset.editPolicy) openPolicyDialog(DATA.policies.find(x => x.id === t.dataset.editPolicy));
     if (t.dataset.editCompany) openCompanyDialog(DATA.companyBenefits.find(x => x.id === t.dataset.editCompany));
     if (t.dataset.editChild) openChildDialog(DATA.children.find(x => x.id === t.dataset.editChild));
@@ -1400,10 +1535,17 @@ function init() {
     renderAll();
   });
 
+  /* 手元の台帳から用意した契約を、初回だけ自動で取り込む */
+  if (!viewMode && !localStorage.getItem(PRESET_FLAG)) {
+    const added = importPresets();
+    localStorage.setItem(PRESET_FLAG, "1");
+    if (added) persist();
+  }
+
   renderAll();
 
-  /* 何も入っていなければウィザードを開く */
-  if (!viewMode && !isSetUp() && !DATA.policies.length) openWizard();
+  /* 前提が入っていなければウィザードを開く */
+  if (!viewMode && !isSetUp()) openWizard();
 }
 
 if (document.readyState === "loading") {
